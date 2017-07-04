@@ -7,5 +7,9 @@ module Paperclip
         end
       end
     end
+
+    rake_tasks do
+      load "tasks/paperclip_tasks.rake"
+    end
   end
 end
