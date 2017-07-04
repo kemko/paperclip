@@ -33,14 +33,14 @@ require 'paperclip/iostream'
 require 'paperclip/geometry'
 require 'paperclip/processor'
 require 'paperclip/thumbnail'
+require 'paperclip/recursive_thumbnail'
 require 'paperclip/storage'
 require 'paperclip/interpolations'
 require 'paperclip/attachment'
-if defined? Rails.root
-  Dir.glob(File.join(File.expand_path(Rails.root), "lib", "paperclip_processors", "*.rb")).each do |processor|
-    require processor
-  end
-end
+require 'paperclip/optimizer'
+require 'paperclip/matchers'
+require 'paperclip/callback_compatability'
+require 'paperclip/railtie' if defined?(Rails)
 
 # The base module that gets included in ActiveRecord::Base. See the
 # documentation for Paperclip::ClassMethods for more useful information.
