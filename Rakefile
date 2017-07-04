@@ -1,9 +1,11 @@
 require 'rake'
 require 'rake/testtask'
-require 'rake/rdoctask'
+require 'rdoc/task'
 
 $LOAD_PATH << File.join(File.dirname(__FILE__), 'lib')
 require 'paperclip'
+
+import 'lib/tasks/paperclip_tasks.rake'
 
 desc 'Default: run unit tests.'
 task :default => [:clean, :test]
@@ -59,7 +61,7 @@ exclude_file_globs = ["test/s3.yml",
                       "test/pkg/*",
                       "test/tmp",
                       "test/tmp/*"]
-spec = Gem::Specification.new do |s| 
+spec = Gem::Specification.new do |s|
   s.name              = "paperclip"
   s.version           = Paperclip::VERSION
   s.author            = "Jon Yurek"
@@ -85,13 +87,13 @@ task :manifest => :clean do
     puts file
   end
 end
- 
+
 desc "Generate a gemspec file for GitHub"
 task :gemspec => :clean do
   File.open("#{spec.name}.gemspec", 'w') do |f|
     f.write spec.to_ruby
   end
-end 
+end
 
 desc "Build the gem into the current directory"
 task :gem => :gemspec do

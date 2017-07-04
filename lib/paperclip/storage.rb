@@ -106,7 +106,7 @@ module Paperclip
 
       class UploadWorker
         include ::Sidekiq::Worker
-        sidekiq_options queue: ::IMAGE_UPLOAD_QUEUE
+        sidekiq_options queue: :paperclip
 
         def perform(class_name, name, id)
           file = class_name.constantize.find_by_id(id)

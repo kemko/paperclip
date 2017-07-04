@@ -18,6 +18,8 @@ Gem::Specification.new do |s|
   s.rubygems_version = %q{1.3.1}
   s.summary = %q{File attachments as attributes for ActiveRecord}
 
+  s.add_dependency('sidekiq', ["~> 2.0"])
+
   if s.respond_to? :specification_version then
     current_version = Gem::Specification::CURRENT_SPECIFICATION_VERSION
     s.specification_version = 2
