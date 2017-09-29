@@ -244,7 +244,9 @@ module Paperclip
                                   expires: 10.year.from_now.httpdate,
                                   acl: 'public-read')
         end
-        instance.update_column("#{name}_synced_to_s3", true)
+        if instance.class.unscoped.where(id: instance.id).update_all("#{name}_synced_to_s3" => true) == 1
+          instance.touch
+        end
       end
 
       def fog_storage
@@ -271,7 +273,9 @@ module Paperclip
           end
         end
         # не вызываем колбеки и спокойно себя ведем если объект удален
-        instance.update_column("#{name}_synced_to_fog", true)
+        if instance.class.unscoped.where(id: instance.id).update_all("#{name}_synced_to_fog" => true) == 1
+          instance.touch
+        end
       end
 
 
