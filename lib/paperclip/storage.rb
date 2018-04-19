@@ -170,6 +170,7 @@ module Paperclip
                    secret_access_key: @s3_credentials[:secret_access_key] }
 
         params[:endpoint] = @s3_credentials[:endpoint] if @s3_credentials[:endpoint].present?
+        params[:http_proxy] = @s3_credentials[:http_proxy] if @s3_credentials[:http_proxy].present?
 
         s3_client = Aws::S3::Client.new(params)
 
