@@ -166,6 +166,7 @@ module Paperclip
         return @aws_bucket if @aws_bucket
 
         s3_client = Aws::S3::Client.new(
+          endpoint: @s3_credentials[:endpoint],
           region:            @s3_credentials[:region] || 'us-east-1',
           access_key_id:     @s3_credentials[:access_key_id],
           secret_access_key: @s3_credentials[:secret_access_key]
