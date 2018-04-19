@@ -165,12 +165,13 @@ module Paperclip
       def aws_bucket
         return @aws_bucket if @aws_bucket
 
-        s3_client = Aws::S3::Client.new(
-          endpoint: @s3_credentials[:endpoint],
-          region:            @s3_credentials[:region] || 'us-east-1',
-          access_key_id:     @s3_credentials[:access_key_id],
-          secret_access_key: @s3_credentials[:secret_access_key]
-        )
+        params = { region: @s3_credentials[:region] || 'us-east-1',
+                   access_key_id: @s3_credentials[:access_key_id],
+                   secret_access_key: @s3_credentials[:secret_access_key] }
+
+        params[:endpoint] = @s3_credentials[:endpoint] if @s3_credentials[:endpoint].present?
+
+        s3_client = Aws::S3::Client.new(params)
 
         s3_resource = Aws::S3::Resource.new(client: s3_client)
         @aws_bucket = s3_resource.bucket(bucket_name)
