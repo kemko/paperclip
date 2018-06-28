@@ -305,8 +305,11 @@ module Paperclip
       def delete_recursive(path)
         initial_path = path
         begin
-          FileUtils.rm(path) if File.exist?(path)
-        rescue Errno::ENOENT, Errno::ESTALE => e
+          FileUtils.rm(path)
+        rescue Errno::ENOENT, Errno::ESTALE
+          nil
+        rescue Errno::EEXIST
+          raise 'Image still stored locally after deletion' if File.exist?(path)
         end
         begin
           while(true)
