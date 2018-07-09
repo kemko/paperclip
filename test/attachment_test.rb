@@ -593,7 +593,7 @@ class AttachmentTest < Test::Unit::TestCase
             should "commit the files to disk" do
               [:large, :medium, :small].each do |style|
                 io = @attachment.to_io(style)
-                assert File.exists?(io)
+                assert File.exist?(io)
                 assert ! io.is_a?(::Tempfile)
                 io.close
               end
@@ -631,7 +631,7 @@ class AttachmentTest < Test::Unit::TestCase
                 @attachment.expects(:instance_write).with(:updated_at, nil)
                 @attachment.assign nil
                 @attachment.save
-                @existing_names.each{|f| assert ! File.exists?(f) }
+                @existing_names.each{|f| assert ! File.exist?(f) }
               end
 
               should "delete the files when you call #clear and #save" do
@@ -641,7 +641,7 @@ class AttachmentTest < Test::Unit::TestCase
                 @attachment.expects(:instance_write).with(:updated_at, nil)
                 @attachment.clear
                 @attachment.save
-                @existing_names.each{|f| assert ! File.exists?(f) }
+                @existing_names.each{|f| assert ! File.exist?(f) }
               end
 
               should "delete the files when you call #delete" do
@@ -650,7 +650,7 @@ class AttachmentTest < Test::Unit::TestCase
                 @attachment.expects(:instance_write).with(:file_size, nil)
                 @attachment.expects(:instance_write).with(:updated_at, nil)
                 @attachment.destroy
-                @existing_names.each{|f| assert ! File.exists?(f) }
+                @existing_names.each{|f| assert ! File.exist?(f) }
               end
             end
           end
