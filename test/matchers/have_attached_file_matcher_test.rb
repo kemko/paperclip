@@ -1,4 +1,4 @@
-require 'test/helper'
+require 'test_helper'
 
 class HaveAttachedFileMatcherTest < Test::Unit::TestCase
   context "have_attached_file" do

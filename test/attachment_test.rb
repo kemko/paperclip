@@ -1,4 +1,4 @@
-require 'test/helper'
+require 'test_helper'
 
 class Dummy
   # This is a dummy class
@@ -105,12 +105,11 @@ class AttachmentTest < Test::Unit::TestCase
       @dummy.stubs(:id).returns(@id)
       @file = StringIO.new(".")
       @dummy.avatar = @file
+      Rails.stub(:env) { @rails_env }
     end
 
     should "return the proper path" do
-      temporary_rails_env(@rails_env) {
-        assert_equal "#{@rails_env}/#{@id}.png", @dummy.avatar.path
-      }
+      assert_equal "#{@rails_env}/#{@id}.png", @dummy.avatar.path
     end
   end
 

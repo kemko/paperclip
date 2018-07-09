@@ -1,23 +1,20 @@
 require 'rubygems'
 require 'test/unit'
-gem 'thoughtbot-shoulda', ">= 2.9.0"
 require 'shoulda'
-require 'mocha'
+require 'mocha/test_unit'
+require 'pry'
 require 'tempfile'
-
-gem 'sqlite3-ruby'
+require 'sqlite3'
 
 require 'active_record'
 require 'active_support'
-begin
-  require 'ruby-debug'
-rescue LoadError
-  puts "ruby-debug not loaded"
-end
+require 'rails'
 
-ROOT       = File.join(File.dirname(__FILE__), '..')
-Rails.root = ROOT
-Rails.env  = "test"
+ROOT = File.expand_path('../', __dir__)
+
+ENV['RAILS_ENV'] = 'test'
+class TestRailsApp < Rails::Application; end
+Rails.application.config.root = "#{ROOT}/tmp/rails"
 
 $LOAD_PATH << File.join(ROOT, 'lib')
 $LOAD_PATH << File.join(ROOT, 'lib', 'paperclip')
@@ -66,17 +63,6 @@ def rebuild_class options = {}
   Dummy.class_eval do
     include Paperclip
     has_attached_file :avatar, options
-  end
-end
-
-def temporary_rails_env(new_env)
-  old_env = Object.const_defined?("Rails.env") ? Rails.env : nil
-  silence_warnings do
-    Object.const_set("Rails.env", new_env)
-  end
-  yield
-  silence_warnings do
-    Object.const_set("Rails.env", old_env)
   end
 end
 
