@@ -35,7 +35,13 @@ module Paperclip
 
       module Defining
         def define_paperclip_callbacks(*callbacks)
-          define_callbacks *[callbacks, {:terminator => "result == false"}].flatten
+          terminator =
+            if Gem::Version.new(ActiveRecord::VERSION::STRING) >= Gem::Version.new('4.1')
+              ->(target, result) { result == false }
+            else
+              'result == false'
+            end
+          define_callbacks *[callbacks, {terminator: terminator}].flatten
           callbacks.each do |callback|
             eval <<-end_callbacks
               def before_#{callback}(*args, &blk)
