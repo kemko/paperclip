@@ -231,7 +231,7 @@ module Paperclip
       def filesystem_paths
         h = {}
         [:original, *@styles.keys].uniq.map do |style|
-          h[style] = filesystem_path(style) if File.exists?(filesystem_path(style))
+          h[style] = filesystem_path(style) if File.exist?(filesystem_path(style))
         end
         h
       end
@@ -315,7 +315,7 @@ module Paperclip
           while(true)
             path = File.dirname(path)
             FileUtils.rmdir(path)
-            break if File.exists?(path) # Ruby 1.9.2 does not raise if the removal failed.
+            break if File.exist?(path) # Ruby 1.9.2 does not raise if the removal failed.
           end
         rescue Errno::EEXIST, Errno::ENOTEMPTY, Errno::ENOENT, Errno::EINVAL, Errno::ENOTDIR, Errno::ESTALE => e
         rescue SystemCallError => e

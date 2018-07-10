@@ -4,7 +4,7 @@ module Paperclip
   class Optimizer < Processor
     def make
       optimized_file_path  = optimize(@file)
-      if optimized_file_path && File.exists?(optimized_file_path)
+      if optimized_file_path && File.exist?(optimized_file_path)
         return File.open(optimized_file_path)
       else
         return @file

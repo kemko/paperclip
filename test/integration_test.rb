@@ -1,4 +1,4 @@
-require 'test/helper'
+require 'test_helper'
 
 class IntegrationTest < Test::Unit::TestCase
   context "Many models at once" do
@@ -12,8 +12,7 @@ class IntegrationTest < Test::Unit::TestCase
 
     should "not exceed the open file limit" do
        assert_nothing_raised do
-         dummies = Dummy.find(:all)
-         dummies.each { |dummy| dummy.avatar }
+         Dummy.find_each(&:avatar)
        end
     end
   end
@@ -91,7 +90,7 @@ class IntegrationTest < Test::Unit::TestCase
       end
 
       should "have a large file in the right place" do
-        assert File.exists?(@dummy.avatar.path(:large))
+        assert File.exist?(@dummy.avatar.path(:large))
       end
 
       context "and deleted" do
@@ -101,12 +100,12 @@ class IntegrationTest < Test::Unit::TestCase
         end
 
         should "not have a large file in the right place anymore" do
-          assert ! File.exists?(@saved_path)
+          assert ! File.exist?(@saved_path)
         end
 
         should "not have its next two parent directories" do
-          assert ! File.exists?(File.dirname(@saved_path))
-          assert ! File.exists?(File.dirname(File.dirname(@saved_path)))
+          assert ! File.exist?(File.dirname(@saved_path))
+          assert ! File.exist?(File.dirname(File.dirname(@saved_path)))
         end
 
         before_should "not die if an unexpected SystemCallError happens" do
@@ -129,16 +128,6 @@ class IntegrationTest < Test::Unit::TestCase
 
     should "have its definition return false when asked about whiny_thumbnails" do
       assert ! Dummy.attachment_definitions[:avatar][:whiny_thumbnails]
-    end
-
-    context "when validates_attachment_thumbnails is called" do
-      setup do
-        Dummy.validates_attachment_thumbnails :avatar
-      end
-
-      should "have its definition return true when asked about whiny_thumbnails" do
-        assert_equal true, Dummy.attachment_definitions[:avatar][:whiny_thumbnails]
-      end
     end
 
     context "redefined to have attachment validations" do
@@ -232,7 +221,7 @@ class IntegrationTest < Test::Unit::TestCase
       assert @dummy.save
 
       saved_paths.each do |p|
-        assert File.exists?(p)
+        assert File.exist?(p)
       end
 
       @dummy.avatar.clear
@@ -241,7 +230,7 @@ class IntegrationTest < Test::Unit::TestCase
       assert @dummy.save
 
       saved_paths.each do |p|
-        assert ! File.exists?(p)
+        assert ! File.exist?(p)
       end
 
       @d2 = Dummy.find(@dummy.id)
@@ -262,7 +251,7 @@ class IntegrationTest < Test::Unit::TestCase
       assert @d2.save
 
       saved_paths.each do |p|
-        assert ! File.exists?(p)
+        assert ! File.exist?(p)
       end
     end
 

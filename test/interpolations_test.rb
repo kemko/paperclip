@@ -1,4 +1,4 @@
-require 'test/helper'
+require 'test_helper'
 
 class InterpolationsTest < Test::Unit::TestCase
   should "return all methods but the infrastructure when sent #all" do

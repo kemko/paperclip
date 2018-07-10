@@ -1,4 +1,4 @@
-require 'test/helper'
+require 'test_helper'
 
 class PaperclipTest < Test::Unit::TestCase
   [:image_magick_path, :convert_path].each do |path|

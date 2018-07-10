@@ -106,7 +106,7 @@ module Paperclip
     end
 
     def bit_bucket #:nodoc:
-      File.exists?("/dev/null") ? "/dev/null" : "NUL"
+      File.exist?("/dev/null") ? "/dev/null" : "NUL"
     end
 
     def included base #:nodoc:
@@ -271,14 +271,6 @@ module Paperclip
                                                              :message => message,
                                                              :if      => options[:if],
                                                              :unless  => options[:unless]}]
-    end
-
-    # Adds errors if thumbnail creation fails. The same as specifying :whiny_thumbnails => true.
-    def validates_attachment_thumbnails name, options = {}
-      warn('[DEPRECATION] validates_attachment_thumbnail is deprecated. ' +
-           'This validation is on by default and will be removed from future versions. ' +
-           'If you wish to turn it off, supply :whiny => false in your definition.')
-      attachment_definitions[name][:whiny_thumbnails] = true
     end
 
     # Places ActiveRecord-style validations on the presence of a file.

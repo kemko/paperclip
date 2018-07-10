@@ -1,4 +1,4 @@
-require 'test/helper'
+require 'test_helper'
 
 class Dummy
   # This is a dummy class
@@ -105,12 +105,11 @@ class AttachmentTest < Test::Unit::TestCase
       @dummy.stubs(:id).returns(@id)
       @file = StringIO.new(".")
       @dummy.avatar = @file
+      Rails.stub(:env) { @rails_env }
     end
 
     should "return the proper path" do
-      temporary_rails_env(@rails_env) {
-        assert_equal "#{@rails_env}/#{@id}.png", @dummy.avatar.path
-      }
+      assert_equal "#{@rails_env}/#{@id}.png", @dummy.avatar.path
     end
   end
 
@@ -594,7 +593,7 @@ class AttachmentTest < Test::Unit::TestCase
             should "commit the files to disk" do
               [:large, :medium, :small].each do |style|
                 io = @attachment.to_io(style)
-                assert File.exists?(io)
+                assert File.exist?(io)
                 assert ! io.is_a?(::Tempfile)
                 io.close
               end
@@ -632,7 +631,7 @@ class AttachmentTest < Test::Unit::TestCase
                 @attachment.expects(:instance_write).with(:updated_at, nil)
                 @attachment.assign nil
                 @attachment.save
-                @existing_names.each{|f| assert ! File.exists?(f) }
+                @existing_names.each{|f| assert ! File.exist?(f) }
               end
 
               should "delete the files when you call #clear and #save" do
@@ -642,7 +641,7 @@ class AttachmentTest < Test::Unit::TestCase
                 @attachment.expects(:instance_write).with(:updated_at, nil)
                 @attachment.clear
                 @attachment.save
-                @existing_names.each{|f| assert ! File.exists?(f) }
+                @existing_names.each{|f| assert ! File.exist?(f) }
               end
 
               should "delete the files when you call #delete" do
@@ -651,7 +650,7 @@ class AttachmentTest < Test::Unit::TestCase
                 @attachment.expects(:instance_write).with(:file_size, nil)
                 @attachment.expects(:instance_write).with(:updated_at, nil)
                 @attachment.destroy
-                @existing_names.each{|f| assert ! File.exists?(f) }
+                @existing_names.each{|f| assert ! File.exist?(f) }
               end
             end
           end
