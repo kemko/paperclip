@@ -247,7 +247,7 @@ module Paperclip
       def write_to_s3
         return true if instance_read(:synced_to_s3)
         paths = filesystem_paths
-        if paths.length < styles.length || paths.emtpy? # To make monitoring easier
+        if paths.length < styles.length || paths.empty? # To make monitoring easier
           raise RuntimeError.new("Local files not found for Image:#{instance_read(:id)}")
         end
         paths.each do |style, file|
@@ -272,7 +272,7 @@ module Paperclip
         return unless instance.respond_to? synced_to_fog_field
         return true if instance_read(:synced_to_fog)
         paths = filesystem_paths
-        if paths.length < styles.length || paths.emtpy? # To make monitoring easier
+        if paths.length < styles.length || paths.empty? # To make monitoring easier
           raise RuntimeError.new("Local files not found for Image:#{instance_read(:id)}")
         end
         paths.each do |style, file|
