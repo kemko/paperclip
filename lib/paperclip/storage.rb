@@ -186,6 +186,14 @@ module Paperclip
         @s3_host_alias
       end
 
+      def synced_to_s3_field
+        @synced_to_s3_field ||= "#{name}_synced_to_s3".freeze
+      end
+
+      def synced_to_fog_field
+        @synced_to_fog_field ||= "#{name}_synced_to_fog".freeze
+      end
+
       def to_file style = default_style
         @queued_for_write[style] || (File.new(filesystem_path(style), 'rb') if exists?(style)) || download_file(style)
       end
@@ -251,7 +259,7 @@ module Paperclip
                                   expires: 10.year.from_now.httpdate,
                                   acl: 'public-read')
         end
-        if instance.class.unscoped.where(id: instance.id).update_all("#{name}_synced_to_s3" => true) == 1
+        if instance.class.unscoped.where(id: instance.id).update_all(synced_to_s3_field => true) == 1
           instance.touch
         end
       end
@@ -261,7 +269,7 @@ module Paperclip
       end
 
       def write_to_fog
-        return unless instance.respond_to? "#{name}_synced_to_fog"
+        return unless instance.respond_to? synced_to_fog_field
         return true if instance_read(:synced_to_fog)
         paths = filesystem_paths
         if paths.length < styles.length || paths.emtpy? # To make monitoring easier
@@ -282,7 +290,7 @@ module Paperclip
           end
         end
         # не вызываем колбеки и спокойно себя ведем если объект удален
-        if instance.class.unscoped.where(id: instance.id).update_all("#{name}_synced_to_fog" => true) == 1
+        if instance.class.unscoped.where(id: instance.id).update_all(synced_to_fog_field => true) == 1
           instance.touch
         end
       end
@@ -298,9 +306,9 @@ module Paperclip
         end
 
         unless @queued_for_write.empty? || (delay_processing? && @was_dirty)
-          instance.update_column("#{name}_synced_to_s3", false) if instance_read(:synced_to_s3)
-          if instance.respond_to?("#{name}_synced_to_fog") && instance_read(:synced_to_fog)
-            instance.update_column("#{name}_synced_to_fog", false)
+          instance.update_column(synced_to_s3_field, false) if instance_read(:synced_to_s3)
+          if instance.respond_to?(synced_to_fog_field) && instance_read(:synced_to_fog)
+            instance.update_column(synced_to_fog_field, false)
           end
           @queued_jobs.push -> {
             WriteToS3Worker.perform_async(instance.class.to_s, @name, instance.id)
