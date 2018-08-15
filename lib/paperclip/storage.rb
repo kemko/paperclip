@@ -299,6 +299,9 @@ module Paperclip
 
         unless @queued_for_write.empty? || (delay_processing? && @was_dirty)
           instance.update_column("#{name}_synced_to_s3", false) if instance_read(:synced_to_s3)
+          if instance.respond_to?("#{name}_synced_to_fog") && instance_read(:synced_to_fog)
+            instance.update_column("#{name}_synced_to_fog", false)
+          end
           @queued_jobs.push -> {
             WriteToS3Worker.perform_async(instance.class.to_s, @name, instance.id)
             WriteToFogWorker.perform_async(instance.class.to_s, @name, instance.id)
