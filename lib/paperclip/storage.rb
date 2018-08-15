@@ -238,7 +238,11 @@ module Paperclip
 
       def write_to_s3
         return true if instance_read(:synced_to_s3)
-        filesystem_paths.each do |style, file|
+        paths = filesystem_paths
+        if paths.length < styles.length || paths.emtpy? # To make monitoring easier
+          raise RuntimeError.new("Local files not found for Image:#{instance_read(:id)}")
+        end
+        paths.each do |style, file|
           log("saving to s3 #{file}")
             s3_object = aws_bucket.object(s3_path(style).gsub(/^\/+/,''))
             s3_object.upload_file(file,
@@ -260,7 +264,9 @@ module Paperclip
         return unless instance.respond_to? "#{name}_synced_to_fog"
         return true if instance_read(:synced_to_fog)
         paths = filesystem_paths
-        raise RuntimeError.new("Local files not found for Image:#{instance_read(:id)}") if paths.length < styles.length # To make monitoring easier
+        if paths.length < styles.length || paths.emtpy? # To make monitoring easier
+          raise RuntimeError.new("Local files not found for Image:#{instance_read(:id)}")
+        end
         paths.each do |style, file|
           path = s3_path(style)
           path = path[1..-1] if path.start_with?('/')
