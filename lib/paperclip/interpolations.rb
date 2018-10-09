@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Paperclip
   # This module contains all the methods that are available for interpolation
   # in paths and urls. To add your own (or override an existing one), you
@@ -6,13 +8,14 @@ module Paperclip
   module Interpolations
     extend self
 
-    # Hash assignment of interpolations. Included only for compatability,
+    # Hash assignment of interpolations. Included only for compatibility,
     # and is not intended for normal use.
     def self.[]= name, block
       define_method(name, &block)
+      @interpolators_cache = nil
     end
 
-    # Hash access of interpolations. Included only for compatability,
+    # Hash access of interpolations. Included only for compatibility,
     # and is not intended for normal use.
     def self.[] name
       method(name)
@@ -20,17 +23,28 @@ module Paperclip
 
     # Returns a sorted list of all interpolations.
     def self.all
-      self.instance_methods(false).sort
+      self.instance_methods(false).sort!
     end
 
     # Perform the actual interpolation. Takes the pattern to interpolate
     # and the arguments to pass, which are the attachment and style name.
+    # You can pass a method name on your record as a symbol, which should turn
+    # an interpolation pattern for Paperclip to use.
     def self.interpolate pattern, *args
-      all.reverse.inject( pattern.dup ) do |result, tag|
-        result.gsub(/:#{tag}/) do |match|
-          send( tag, *args )
-        end
+      pattern = args.first.instance.send(pattern) if pattern.kind_of? Symbol
+      result = pattern.dup
+      interpolators_cache.each do |method, token|
+        result.gsub!(token) { send(method, *args) } if result.include?(token)
       end
+      result
+    end
+
+    def self.interpolators_cache
+      @interpolators_cache ||= all.reverse!.map! { |method| [method, ":#{method}"] }
+    end
+
+    def self.plural_cache
+      @plural_cache ||= PluralCache.new
     end
 
     # Returns the filename, the same way as ":basename.:extension" would.
@@ -63,13 +77,16 @@ module Paperclip
 
     # Returns the underscored, pluralized version of the class name.
     # e.g. "users" for the User class.
-    def class attachment, style_name
-      attachment.instance.class.to_s.underscore.pluralize
+    # NOTE: The arguments need to be optional, because some tools fetch
+    # all class names. Calling #class will return the expected class.
+    def class attachment = nil, style_name = nil
+      return super() if attachment.nil? && style_name.nil?
+      plural_cache.underscore_and_pluralize_class(attachment.instance.class)
     end
 
     # Returns the basename of the file. e.g. "file" for "file.jpg"
     def basename attachment, style_name
-      attachment.original_filename.gsub(/#{File.extname(attachment.original_filename)}$/, "")
+      File.basename(attachment.original_filename, ".*")
     end
 
     # Returns the extension of the file. e.g. "jpg" for "file.jpg"
@@ -94,7 +111,7 @@ module Paperclip
     # Returns the pluralized form of the attachment name. e.g.
     # "avatars" for an attachment of :avatar
     def attachment attachment, style_name
-      attachment.name.to_s.downcase.pluralize
+      plural_cache.pluralize_symbol(attachment.name)
     end
 
     # Returns the style, or the default style if nil is supplied.
