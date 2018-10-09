@@ -12,7 +12,6 @@ module Paperclip
     # and is not intended for normal use.
     def self.[]= name, block
       define_method(name, &block)
-      @interpolators_cache = nil
     end
 
     # Hash access of interpolations. Included only for compatibility,
@@ -21,26 +20,18 @@ module Paperclip
       method(name)
     end
 
-    # Returns a sorted list of all interpolations.
-    def self.all
-      self.instance_methods(false).sort!
-    end
+    INTERPOLATION_REGEXP = /:\w+/
 
     # Perform the actual interpolation. Takes the pattern to interpolate
     # and the arguments to pass, which are the attachment and style name.
     # You can pass a method name on your record as a symbol, which should turn
     # an interpolation pattern for Paperclip to use.
-    def self.interpolate pattern, *args
-      pattern = args.first.instance.send(pattern) if pattern.kind_of? Symbol
-      result = pattern.dup
-      interpolators_cache.each do |method, token|
-        result.gsub!(token) { send(method, *args) } if result.include?(token)
+    def self.interpolate(pattern, attachment, *args)
+      pattern = attachment.instance.send(pattern) if pattern.kind_of? Symbol
+      pattern.gsub(INTERPOLATION_REGEXP) do |match|
+        method = match[1..-1]
+        respond_to?(method) ? public_send(method, attachment, *args) : match
       end
-      result
-    end
-
-    def self.interpolators_cache
-      @interpolators_cache ||= all.reverse!.map! { |method| [method, ":#{method}"] }
     end
 
     def self.plural_cache
