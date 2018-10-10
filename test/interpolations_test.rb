@@ -1,16 +1,6 @@
 require 'test_helper'
 
 class InterpolationsTest < Test::Unit::TestCase
-  should "return all methods but the infrastructure when sent #all" do
-    methods = Paperclip::Interpolations.all
-    assert ! methods.include?(:[])
-    assert ! methods.include?(:[]=)
-    assert ! methods.include?(:all)
-    methods.each do |m|
-      assert Paperclip::Interpolations.respond_to? m
-    end
-  end
-
   should "return the Rails.root" do
     assert_equal Rails.root, Paperclip::Interpolations.rails_root(:attachment, :style)
   end
@@ -22,13 +12,13 @@ class InterpolationsTest < Test::Unit::TestCase
   should "return the class of the instance" do
     attachment = mock
     attachment.expects(:instance).returns(attachment)
-    attachment.expects(:class).returns("Thing")
+    attachment.expects(:class).returns(mock(name: "Thing"))
     assert_equal "things", Paperclip::Interpolations.class(attachment, :style)
   end
 
   should "return the basename of the file" do
     attachment = mock
-    attachment.expects(:original_filename).returns("one.jpg").times(2)
+    attachment.expects(:original_filename).returns("one.jpg")
     assert_equal "one", Paperclip::Interpolations.basename(attachment, :style)
   end
 
@@ -92,14 +82,14 @@ class InterpolationsTest < Test::Unit::TestCase
   should "return the filename as basename.extension" do
     attachment = mock
     attachment.expects(:styles).returns({})
-    attachment.expects(:original_filename).returns("one.jpg").times(3)
+    attachment.expects(:original_filename).returns("one.jpg").times(2)
     assert_equal "one.jpg", Paperclip::Interpolations.filename(attachment, :style)
   end
 
   should "return the filename as basename.extension when format supplied" do
     attachment = mock
     attachment.expects(:styles).returns({:style => {:format => :png}})
-    attachment.expects(:original_filename).returns("one.jpg").times(2)
+    attachment.expects(:original_filename).returns("one.jpg")
     assert_equal "one.png", Paperclip::Interpolations.filename(attachment, :style)
   end
 
@@ -113,7 +103,6 @@ class InterpolationsTest < Test::Unit::TestCase
   should "call all expected interpolations with the given arguments" do
     Paperclip::Interpolations.expects(:id).with(:attachment, :style).returns(1234)
     Paperclip::Interpolations.expects(:attachment).with(:attachment, :style).returns("attachments")
-    Paperclip::Interpolations.expects(:notreal).never
     value = Paperclip::Interpolations.interpolate(":notreal/:id/:attachment", :attachment, :style)
     assert_equal ":notreal/1234/attachments", value
   end
