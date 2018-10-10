@@ -157,9 +157,6 @@ module Paperclip
         @fog_credentials = @options[:fog_credentials]
 
         @s3_url         = ":s3_path_url" unless @s3_url.to_s.match(/^:s3.*url$/)
-        Paperclip.interpolates(:s3_alias_url) do |attachment, style|
-          ":cdn_protocol://:cdn_domain/#{attachment.path(style).gsub(%r{^/}, "")}"
-        end
       end
 
       def aws_bucket
