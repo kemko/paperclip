@@ -85,7 +85,7 @@ module Paperclip
     # of the actual extension.
     def extension attachment, style_name
       ((style_name = attachment.styles[style_name]) && style_name[:format]) ||
-        File.extname(attachment.original_filename).gsub(/^\.+/, "")
+        File.extname(attachment.original_filename)[1..-1] || ''
     end
 
     # Returns the id of the instance.

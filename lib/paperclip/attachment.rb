@@ -272,24 +272,6 @@ module Paperclip
       time && time.to_i
     end
 
-    def cdn_domain
-      instance_read(:cdn_domain).try(:domain)
-    end
-
-    def cdn_protocol
-      domain = instance_read(:cdn_domain)
-      if domain
-        if domain.ssl_configured?
-          'https'
-        else
-          'http'
-        end
-      else
-        'https'
-      end
-    end
-
-
     # Paths and URLs can have a number of variables interpolated into them
     # to vary the storage location based on name, id, style, class, etc.
     # This method is a deprecated access into supplying and retrieving these
