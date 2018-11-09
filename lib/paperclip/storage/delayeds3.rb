@@ -1,11 +1,18 @@
-require 'sidekiq'
-require 'aws-sdk-s3'
-
 module Paperclip
   module Storage
     # Need to create boolean field synced_to_s3
     module Delayeds3
-      module ClassMethods
+      class << self
+        def included(*)
+          require "sidekiq"
+          begin
+            require "aws-sdk-s3"
+          rescue LoadError => e
+            e.message << " (You may need to install the aws-sdk-s3 gem)"
+            raise e
+          end
+        end
+
         def parse_credentials creds
           return @parsed_credentials if @parsed_credentials
           creds = find_credentials(creds).stringify_keys
@@ -69,8 +76,10 @@ module Paperclip
         end
       end
 
-      def initialize_storage
-        @s3_credentials = self.class.parse_credentials(@options[:s3_credentials])
+      def initialize(*)
+        super
+
+        @s3_credentials = Delayeds3.parse_credentials(@options[:s3_credentials])
         @bucket         = @options[:bucket]         || @s3_credentials[:bucket]
         @bucket         = @bucket.call(self) if @bucket.is_a?(Proc)
         @s3_permissions = @options[:s3_permissions] || 'public-read'
@@ -168,11 +177,6 @@ module Paperclip
       end
 
       alias_method :to_io, :to_file
-
-      def parse_credentials creds
-        creds = find_credentials(creds).stringify_keys
-        (creds[Rails.env] || creds).symbolize_keys
-      end
 
       def s3_protocol
         @s3_protocol

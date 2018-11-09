@@ -27,6 +27,27 @@ module Paperclip
       }
     end
 
+    def self.attachment_class_cache
+      @attachment_class_cache ||= Hash.new do |hash, storage|
+        storage_name = storage.to_s.downcase.camelize
+        unless Storage.const_defined?(storage_name, false)
+          raise "Cannot load storage module '#{storage_name}'"
+        end
+        hash[storage] =
+          if storage_name == storage
+            storage_module = Storage.const_get(storage_name)
+            Class.new(self) { include(storage_module) }.tap { |x| const_set(storage_name, x) }
+          else
+            hash[storage_name]
+          end
+      end
+    end
+
+    def self.build(name, instance, options = {})
+      storage = options[:storage] || default_options[:storage]
+      attachment_class_cache[storage].new(name, instance, options)
+    end
+
     attr_reader :name, :instance, :style_order, :styles, :default_style,
       :convert_options, :queued_for_write, :options
 
@@ -39,7 +60,7 @@ module Paperclip
       @name              = name
       @instance          = instance
 
-      options = self.class.default_options.merge(options)
+      options = Attachment.default_options.merge(options)
 
       @url               = options[:url]
       @url               = @url.call(self) if @url.is_a?(Proc)
@@ -67,7 +88,6 @@ module Paperclip
       @processing_url    = options[:processing_url] || @default_url
 
       normalize_style_definition
-      initialize_storage
     end
 
     # What gets called when you call instance.attachment = File. It clears
@@ -424,11 +444,6 @@ module Paperclip
       end
     end
 
-    def initialize_storage #:nodoc:
-      @storage_module = Paperclip::Storage.const_get(@storage.to_s.capitalize)
-      self.extend(@storage_module)
-    end
-
     def extra_options_for(style) #:nodoc:
       all_options   = convert_options[:all]
       all_options   = all_options.call(instance)   if all_options.respond_to?(:call)
@@ -481,11 +496,5 @@ module Paperclip
         [message].flatten.each {|m| instance.errors.add(name, m) }
       end
     end
-  end
-
-
-  class DelayedS3Attachment < Attachment
-    include Paperclip::Storage::Delayeds3
-    extend Paperclip::Storage::Delayeds3::ClassMethods
   end
 end
