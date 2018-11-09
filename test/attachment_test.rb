@@ -80,7 +80,7 @@ class AttachmentTest < Test::Unit::TestCase
 
   context "An attachment with similarly named interpolations" do
     setup do
-      rebuild_model :path => ":id.omg/:id-bbq/:idwhat/:id_partition.wtf"
+      rebuild_model :path => ":id.omg/:id-bbq/:id/what/:id_partition.wtf"
       @dummy = Dummy.new
       @dummy.stubs(:id).returns(1024)
       @file = File.new(File.join(File.dirname(__FILE__),
@@ -92,7 +92,7 @@ class AttachmentTest < Test::Unit::TestCase
     teardown { @file.close }
 
     should "make sure that they are interpolated correctly" do
-      assert_equal "1024.omg/1024-bbq/1024what/000/001/024.wtf", @dummy.avatar.path
+      assert_equal "1024.omg/1024-bbq/1024/what/000/001/024.wtf", @dummy.avatar.path
     end
   end
 
@@ -484,7 +484,7 @@ class AttachmentTest < Test::Unit::TestCase
       FileUtils.rm_rf("tmp")
       rebuild_model
       @instance = Dummy.new
-      @attachment = Paperclip::Attachment.new(:avatar, @instance)
+      @attachment = Paperclip::Attachment.build(:avatar, @instance)
       @file = File.new(File.join(File.dirname(__FILE__),
                                  "fixtures",
                                  "5k.png"), 'rb')
@@ -496,7 +496,7 @@ class AttachmentTest < Test::Unit::TestCase
     end
 
     should "raise if there are not the correct columns when you try to assign" do
-      @other_attachment = Paperclip::Attachment.new(:not_here, @instance)
+      @other_attachment = Paperclip::Attachment.build(:not_here, @instance)
       assert_raises(Paperclip::PaperclipError) do
         @other_attachment.assign(@file)
       end
@@ -561,7 +561,7 @@ class AttachmentTest < Test::Unit::TestCase
           styles = {:styles => { :large  => ["400x400", :png],
                                  :medium => ["100x100", :gif],
                                  :small => ["32x32#", :jpg]}}
-          @attachment = Paperclip::Attachment.new(:avatar,
+          @attachment = Paperclip::Attachment.build(:avatar,
                                                   @instance,
                                                   styles)
         end

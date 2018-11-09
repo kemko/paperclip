@@ -14,25 +14,25 @@ class StorageTest < Test::Unit::TestCase
     end
 
     teardown do
-      Object.const_set("Rails.env", @current_env)
+      Rails.env = @current_env
     end
 
     should "get the correct credentials when Rails.env is production" do
-      Object.const_set('Rails.env', "production")
+      Rails.env = "production"
       assert_equal({:key => "12345"},
                    @avatar.parse_credentials('production' => {:key => '12345'},
                                              :development => {:key => "54321"}))
     end
 
     should "get the correct credentials when Rails.env is development" do
-      Object.const_set('Rails.env', "development")
+      Rails.env = "development"
       assert_equal({:key => "54321"},
                    @avatar.parse_credentials('production' => {:key => '12345'},
                                              :development => {:key => "54321"}))
     end
 
     should "return the argument if the key does not exist" do
-      Object.const_set('Rails.env', "not really an env")
+      Rails.env = "not really an env"
       assert_equal({:test => "12345"}, @avatar.parse_credentials(:test => "12345"))
     end
   end
@@ -45,11 +45,12 @@ class StorageTest < Test::Unit::TestCase
                     :path => ":attachment/:basename.:extension",
                     :url => ":s3_path_url"
       @dummy = Dummy.new
-      @dummy.avatar = StringIO.new(".")
+      @dummy.avatar = StringIO.new('.\n')
+      @dummy.stubs(:new_record?).returns(false)
     end
 
     should "return a url based on an S3 path" do
-      assert_match %r{^http://s3.amazonaws.com/bucket/avatars/stringio.txt}, @dummy.avatar.url
+      assert_match %r{^//s3.amazonaws.com/bucket/avatars/stringio.txt[^\.]}, @dummy.avatar.url
     end
   end
   context "" do
@@ -64,7 +65,7 @@ class StorageTest < Test::Unit::TestCase
     end
 
     should "return a url based on an S3 subdomain" do
-      assert_match %r{^http://bucket.s3.amazonaws.com/avatars/stringio.txt}, @dummy.avatar.url
+      assert_match %r{^//bucket.s3.amazonaws.com/avatars/stringio.txt[^\.]}, @dummy.avatar.url
     end
   end
   context "" do
@@ -82,7 +83,7 @@ class StorageTest < Test::Unit::TestCase
     end
 
     should "return a url based on the host_alias" do
-      assert_match %r{^http://something.something.com/avatars/stringio.txt}, @dummy.avatar.url
+      assert_match %r{^//something.something.com/avatars/stringio.txt[^\.]}, @dummy.avatar.url
     end
   end
 
@@ -97,15 +98,15 @@ class StorageTest < Test::Unit::TestCase
       @old_env = Rails.env
     end
 
-    teardown{ Object.const_set("Rails.env", @old_env) }
+    teardown{ Rails.env = @old_env }
 
     should "get the right bucket in production" do
-      Object.const_set("Rails.env", "production")
+      Rails.env = "production"
       assert_equal "prod_bucket", @dummy.avatar.bucket_name
     end
 
     should "get the right bucket in development" do
-      Object.const_set("Rails.env", "development")
+      Rails.env = "development"
       assert_equal "dev_bucket", @dummy.avatar.bucket_name
     end
   end
@@ -134,49 +135,32 @@ class StorageTest < Test::Unit::TestCase
         @file = File.new(File.join(File.dirname(__FILE__), 'fixtures', '5k.png'), 'rb')
         @dummy = Dummy.new
         @dummy.avatar = @file
+        @dummy.stubs(:new_record?).returns(false)
       end
 
       teardown { @file.close }
 
-      should "not get a bucket to get a URL" do
-        @dummy.avatar.expects(:s3).never
-        @dummy.avatar.expects(:s3_bucket).never
-        assert_match %r{^http://s3\.amazonaws\.com/testing/avatars/original/5k\.png}, @dummy.avatar.url
+      # Overriden implementation
+      # should "not get a bucket to get a URL" do
+      #   @dummy.avatar.expects(:s3).never
+      #   @dummy.avatar.expects(:s3_bucket).never
+      #   assert_match %r{^//s3\.amazonaws\.com/testing/avatars/original/5k\.png}, @dummy.avatar.url
+      # end
+
+      should "rewound after flush_writes" do
+        @dummy.avatar.instance_eval "def after_flush_writes; end"
+        @dummy.avatar.stubs(:s3_object).returns(stub(upload_file: true))
+        files = @dummy.avatar.queued_for_write.values.each(&:read)
+        @dummy.save
+        assert files.none?(&:eof?), "Expect all the files to be rewound."
       end
 
-      context "and saved" do
-        setup do
-          @s3_mock     = stub
-          @bucket_mock = stub
-          RightAws::S3.expects(:new).with("12345", "54321", {}).returns(@s3_mock)
-          @s3_mock.expects(:bucket).with("testing", true, "public-read").returns(@bucket_mock)
-          @key_mock = stub
-          @bucket_mock.expects(:key).returns(@key_mock)
-          @key_mock.expects(:data=)
-          @key_mock.expects(:put).with(nil, 'public-read', 'Content-type' => 'image/png')
-          @dummy.save
-        end
-
-        should "succeed" do
-          assert true
-        end
-      end
-
-      context "and remove" do
-        setup do
-          @s3_mock     = stub
-          @bucket_mock = stub
-          RightAws::S3.expects(:new).with("12345", "54321", {}).returns(@s3_mock)
-          @s3_mock.expects(:bucket).with("testing", true, "public-read").returns(@bucket_mock)
-          @key_mock = stub
-          @bucket_mock.expects(:key).at_least(2).returns(@key_mock)
-          @key_mock.expects(:delete)
-          @dummy.destroy_attached_files
-        end
-
-        should "succeed" do
-          assert true
-        end
+      should "remove after after_flush_writes" do
+        @dummy.avatar.stubs(:s3_object).returns(stub(upload_file: true))
+        paths = @dummy.avatar.queued_for_write.values.map(&:path)
+        @dummy.save
+        assert paths.none?{ |path| File.exist?(path) },
+          "Expect all the files to be deleted."
       end
     end
   end
@@ -217,17 +201,14 @@ class StorageTest < Test::Unit::TestCase
 
       context "and saved" do
         setup do
-          @s3_mock     = stub
-          @bucket_mock = stub
-          RightAws::S3.expects(:new).with("12345", "54321", {}).returns(@s3_mock)
-          @s3_mock.expects(:bucket).with("testing", true, "public-read").returns(@bucket_mock)
-          @key_mock = stub
-          @bucket_mock.expects(:key).returns(@key_mock)
-          @key_mock.expects(:data=)
-          @key_mock.expects(:put).with(nil,
-                                       'public-read',
-                                       'Content-type' => 'image/png',
-                                       'Cache-Control' => 'max-age=31557600')
+          object = stub
+          @dummy.avatar.stubs(:s3_object).returns(object)
+
+          object.expects(:upload_file)
+            .with(anything,
+                  content_type: 'image/png',
+                  acl: :"public-read",
+                  cache_control: 'max-age=31557600')
           @dummy.save
         end
 
