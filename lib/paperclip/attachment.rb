@@ -491,5 +491,21 @@ module Paperclip
         [message].flatten.each {|m| instance.errors.add(name, m) }
       end
     end
+
+    # Backported from upstream for S3. Do we need this for all storages?
+    def after_flush_writes
+      unlink_files(@queued_for_write.values)
+    end
+
+    def unlink_files(files)
+      Array(files).each do |file|
+        file.close unless file.closed?
+
+        begin
+          file.unlink if file.respond_to?(:unlink)
+        rescue Errno::ENOENT
+        end
+      end
+    end
   end
 end

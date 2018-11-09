@@ -148,7 +148,7 @@ module Paperclip
           end
 
           unless @options[:url].to_s.match(/\A:s3.*url\z/) || @options[:url] == ":asset_host".freeze
-            @options[:path] = path_option.gsub(/:url/, @options[:url]).sub(/\A:rails_root\/public\/system/, "".freeze)
+            @options[:path] = @path.gsub(/:url/, @options[:url]).sub(/\A:rails_root\/public\/system/, "".freeze)
             @options[:url]  = ":s3_path_url".freeze
           end
           @options[:url] = @options[:url].inspect if @options[:url].is_a?(Symbol)
@@ -310,7 +310,7 @@ module Paperclip
       def parse_credentials creds
         creds = creds.respond_to?(:call) ? creds.call(self) : creds
         creds = find_credentials(creds).stringify_keys
-        (creds[RailsEnvironment.get] || creds).symbolize_keys
+        (creds[Rails.env] || creds).symbolize_keys
       end
 
       def exists?(style = default_style)
@@ -420,6 +420,20 @@ module Paperclip
       rescue Aws::Errors::ServiceError => e
         warn("#{e} - cannot copy #{path(style)} to local file #{local_dest_path}")
         false
+      end
+
+      def to_file style = default_style
+        if @queued_for_write[style]
+          @queued_for_write[style].rewind
+          return @queued_for_write[style]
+        end
+        filename = path(style)
+        extname  = File.extname(filename)
+        basename = File.basename(filename, extname)
+        file = Tempfile.new([basename, extname])
+        s3_object(style).download_file(file.path)
+        file.binmode
+        return file
       end
 
       private
