@@ -40,10 +40,6 @@ module Paperclip
       options = self.class.default_options.merge(options)
 
       @url               = options[:url]
-      @s3_url            = options[:s3_url]
-      @s3_path           = options[:s3_path]
-      @filesystem_url    = options[:filesystem_url]
-      @filesystem_path   = options[:filesystem_path]
       @url               = @url.call(self) if @url.is_a?(Proc)
       @path              = options[:path]
       @path              = @path.call(self) if @path.is_a?(Proc)
@@ -52,7 +48,6 @@ module Paperclip
       @styles            = options[:styles]
       @styles            = @styles.call(self) if @styles.is_a?(Proc)
       @default_url       = options[:default_url]
-      @filesystem_url    = options[:filesystem_url]
       @validations       = options[:validations]
       @default_style     = options[:default_style]
       @storage           = options[:storage]

@@ -71,18 +71,13 @@ module Paperclip
         @s3_credentials = self.class.parse_credentials(@options[:s3_credentials])
         @bucket         = @options[:bucket]         || @s3_credentials[:bucket]
         @bucket         = @bucket.call(self) if @bucket.is_a?(Proc)
-        @s3_options     = @options[:s3_options]     || {}
         @s3_permissions = @options[:s3_permissions] || 'public-read'
         @s3_protocol    = @options[:s3_protocol]    || (@s3_permissions == 'public-read' ? 'http' : 'https')
-        @s3_headers     = @options[:s3_headers]     || {}
         @s3_host_alias  = @options[:s3_host_alias]
-        @job_priority   = @options[:job_priority]
 
         @fog_provider   = @options[:fog_provider]
         @fog_directory  = @options[:fog_directory]
         @fog_credentials = @options[:fog_credentials]
-
-        @s3_url         = ":s3_path_url" unless @s3_url.to_s.match(/^:s3.*url$/)
       end
 
       def aws_bucket
