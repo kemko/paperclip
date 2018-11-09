@@ -350,7 +350,7 @@ module Paperclip
     def flush_attachment_jobs
       logger.info("[paperclip] flushing jobs.")
       each_attachment do |name, attachment|
-        attachment.send(:flush_jobs)
+        attachment.try(:flush_jobs)
       end
     end
   end

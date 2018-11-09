@@ -57,7 +57,6 @@ module Paperclip
       @options           = options
       @queued_for_delete = []
       @queued_for_write  = {}
-      @queued_jobs       = []
       @errors            = {}
       @validation_errors = nil
       @dirty             = false
@@ -150,23 +149,18 @@ module Paperclip
     # include_updated_timestamp to false if you want to stop the attachment
     # update time appended to the url
     def url style = default_style, include_updated_timestamp = true
-      u = @url
-      if @storage == :delayeds3
-        u = instance_read(:synced_to_s3) ? options[:s3_url] : options[:filesystem_url]
-      end
       # for delayed_paperclip
-      if @instance.respond_to?("#{name}_processing?") && @instance.send("#{name}_processing?")
-        return interpolate @processing_url, style
-      end
-      url = original_filename.nil? ? interpolate(@default_url, style) : interpolate(u, style)
-      include_updated_timestamp && updated_at ? [url, updated_at].compact.join(url.include?("?") ? "&" : "?") : url
+      return interpolate(@processing_url, style) if @instance.try("#{name}_processing?")
+      interpolate_url(@url, style, include_updated_timestamp)
     end
 
     # Метод необходим в ассетах
     def filesystem_url style = default_style, include_updated_timestamp = true
-      u = @url
-      u = options[:filesystem_url] if @storage == :delayeds3
-      url = original_filename.nil? ? interpolate(@default_url, style) : interpolate(u, style)
+      interpolate_url(@url, style, include_updated_timestamp)
+    end
+
+    def interpolate_url(template, style, include_updated_timestamp)
+      url = original_filename.nil? ? interpolate(@default_url, style) : interpolate(template, style)
       include_updated_timestamp && updated_at ? [url, updated_at].compact.join(url.include?("?") ? "&" : "?") : url
     end
 
@@ -176,19 +170,10 @@ module Paperclip
     # URL, and the :bucket option refers to the S3 bucket.
     def path style = default_style
       return if original_filename.nil?
-      p = @path
-      if @storage == :delayeds3
-        p = instance_read(:synced_to_s3) ? options[:s3_path] : options[:filesystem_path]
-      end
-      interpolate(p, style)
+      interpolate(@path, style)
     end
 
-    def filesystem_path style = default_style
-      return if original_filename.nil?
-      p = @path
-      p = options[:filesystem_path] if @storage == :delayeds3
-      interpolate(p, style)
-    end
+    alias_method :filesystem_path, :path
 
     # Alias to +url+
     def to_s style = nil
@@ -308,7 +293,6 @@ module Paperclip
       post_process
       old_original.close if old_original.respond_to?(:close)
       save
-      flush_jobs
     end
 
     # Returns true if a file has been assigned.
@@ -486,7 +470,7 @@ module Paperclip
     def queue_existing_for_delete #:nodoc:
       return unless file?
       @queued_for_delete += [:original, *@styles.keys].uniq.map do |style|
-        @storage == :delayeds3 ? filesystem_path(style) : path(style)
+        filesystem_path(style)
       end.compact
     end
 
@@ -494,11 +478,6 @@ module Paperclip
       @errors.each do |error, message|
         [message].flatten.each {|m| instance.errors.add(name, m) }
       end
-    end
-
-    def flush_jobs
-      @queued_jobs.try(:each, &:call)
-      @queued_jobs = []
     end
   end
 

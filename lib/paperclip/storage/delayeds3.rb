@@ -78,6 +78,36 @@ module Paperclip
         @fog_provider   = @options[:fog_provider]
         @fog_directory  = @options[:fog_directory]
         @fog_credentials = @options[:fog_credentials]
+
+        @queued_jobs    = []
+      end
+
+      def url(style = default_style, include_updated_timestamp = true)
+        # for delayed_paperclip
+        return interpolate(@processing_url, style) if @instance.try("#{name}_processing?")
+        template = instance_read(:synced_to_s3) ? options[:s3_url] : options[:filesystem_url]
+        interpolate_url(template, style, include_updated_timestamp)
+      end
+
+      # Метод необходим в ассетах
+      def filesystem_url(style = default_style, include_updated_timestamp = true)
+        interpolate_url(options[:filesystem_url], style, include_updated_timestamp)
+      end
+
+      def path(style = default_style)
+        return if original_filename.nil?
+        path = instance_read(:synced_to_s3) ? options[:s3_path] : options[:filesystem_path]
+        interpolate(path, style)
+      end
+
+      def filesystem_path(style = default_style)
+        return if original_filename.nil?
+        interpolate(options[:filesystem_path], style)
+      end
+
+      def reprocess!
+        super
+        flush_jobs
       end
 
       def aws_bucket
@@ -283,6 +313,11 @@ module Paperclip
             delete_recursive(filename)
           end
         end
+      end
+
+      def flush_jobs
+        @queued_jobs&.each(&:call)
+        @queued_jobs = []
       end
     end
   end
