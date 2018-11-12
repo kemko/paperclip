@@ -1,8 +1,10 @@
+require 'sidekiq'
+require 'aws-sdk-s3'
+
 module Paperclip
   module Storage
     # Need to create boolean field synced_to_s3
     module Delayeds3
-      # require 'aws-sdk'
       module ClassMethods
         def parse_credentials creds
           return @parsed_credentials if @parsed_credentials

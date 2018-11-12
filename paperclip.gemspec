@@ -16,6 +16,4 @@ Gem::Specification.new do |s|
   s.rubyforge_project = %q{paperclip}
   s.rubygems_version = %q{1.3.1}
   s.summary = %q{File attachments as attributes for ActiveRecord}
-
-  s.add_dependency('sidekiq', ["~> 2.0"])
 end
