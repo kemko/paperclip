@@ -117,7 +117,9 @@ module Paperclip
       def aws_bucket
         return @aws_bucket if @aws_bucket
 
-        params = { region: @s3_credentials[:region] || 'us-east-1',
+        region = @options[:s3_region] || @s3_credentials[:s3_region]
+        region ||= @s3_credentials[:region] # backward compatibility
+        params = { region: region || 'us-east-1',
                    access_key_id: @s3_credentials[:access_key_id],
                    secret_access_key: @s3_credentials[:secret_access_key] }
 
