@@ -15,6 +15,7 @@ Rake::TestTask.new(:test) do |t|
   t.libs << 'lib' << 'test'
   t.pattern = 'test/**/*_test.rb'
   t.verbose = true
+  t.warning = false
 end
 
 desc 'Start an IRB session with all necessary files required.'

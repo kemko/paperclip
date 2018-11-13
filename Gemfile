@@ -6,6 +6,8 @@ gem 'appraisal'
 
 gem 'fastimage'
 gem 'sqlite3'
+gem 'aws-sdk-s3'
+gem 'sidekiq', '~> 2.0'
 
 gem 'test-unit'
 gem 'thoughtbot-shoulda', '>= 2.9.0'

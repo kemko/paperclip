@@ -27,7 +27,6 @@
 
 require 'tempfile'
 require 'fastimage'
-require 'sidekiq'
 require 'paperclip/upfile'
 require 'paperclip/iostream'
 require 'paperclip/geometry'
@@ -350,7 +349,7 @@ module Paperclip
     def flush_attachment_jobs
       logger.info("[paperclip] flushing jobs.")
       each_attachment do |name, attachment|
-        attachment.send(:flush_jobs)
+        attachment.try(:flush_jobs)
       end
     end
   end
