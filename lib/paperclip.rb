@@ -317,11 +317,7 @@ module Paperclip
   module InstanceMethods #:nodoc:
     def attachment_for name
       @_paperclip_attachments ||= {}
-      @_paperclip_attachments[name] ||= if self.class.attachment_definitions[name][:storage] == :delayeds3
-        DelayedS3Attachment.new(name, self, self.class.attachment_definitions[name])
-      else
-        Attachment.new(name, self, self.class.attachment_definitions[name])
-      end
+      @_paperclip_attachments[name] ||= Attachment.build(name, self, self.class.attachment_definitions[name])
     end
 
     def each_attachment

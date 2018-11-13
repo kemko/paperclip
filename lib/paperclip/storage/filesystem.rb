@@ -16,9 +16,6 @@ module Paperclip
     #   See Paperclip::Attachment#interpolate for more information on variable interpolaton.
     #     :path => "/var/app/attachments/:class/:id/:style/:basename.:extension"
     module Filesystem
-      def self.extended base
-      end
-
       def exists?(style = default_style)
         if original_filename
           File.exist?(path(style))
