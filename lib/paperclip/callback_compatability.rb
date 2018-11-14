@@ -1,11 +1,14 @@
 module Paperclip
   module CallbackCompatability
-    module Rails21
-      def self.included(base)
-        base.extend(Defining)
-        base.send(:include, Running)
-      end
+    module_function
 
+    def install_to(base)
+      mod = base.respond_to?(:set_callback) ? Rails3 : Rails21
+      base.extend(mod::Defining)
+      base.send(:include, mod::Running)
+    end
+
+    module Rails21
       module Defining
         def define_paperclip_callbacks(*args)
           args.each do |callback|
@@ -28,29 +31,24 @@ module Paperclip
     end
 
     module Rails3
-      def self.included(base)
-        base.extend(Defining)
-        base.send(:include, Running)
-      end
-
       module Defining
+        TERMINATOR =
+          if Gem::Version.new(ActiveRecord::VERSION::STRING) >= Gem::Version.new('4.1')
+            ->(target, result) { result == false }
+          else
+            'result == false'
+          end
+
         def define_paperclip_callbacks(*callbacks)
-          terminator =
-            if Gem::Version.new(ActiveRecord::VERSION::STRING) >= Gem::Version.new('4.1')
-              ->(target, result) { result == false }
-            else
-              'result == false'
+          define_callbacks *[callbacks, {terminator: TERMINATOR}].flatten
+          callbacks.map(&:to_sym).each do |callback|
+            define_singleton_method "before_#{callback}" do |*args, &blk|
+              set_callback(callback, :before, *args, &blk)
             end
-          define_callbacks *[callbacks, {terminator: terminator}].flatten
-          callbacks.each do |callback|
-            eval <<-end_callbacks
-              def before_#{callback}(*args, &blk)
-                set_callback(:#{callback}, :before, *args, &blk)
-              end
-              def after_#{callback}(*args, &blk)
-                set_callback(:#{callback}, :after, *args, &blk)
-              end
-            end_callbacks
+
+            define_singleton_method "after_#{callback}" do |*args, &blk|
+              set_callback(callback, :after, *args, &blk)
+            end
           end
         end
       end
@@ -60,9 +58,7 @@ module Paperclip
           run_callbacks(callback, &block)
         end
       end
-
     end
-
   end
 end
 

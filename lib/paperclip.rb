@@ -42,11 +42,20 @@ require 'paperclip/matchers'
 require 'paperclip/callback_compatability'
 require 'paperclip/railtie' if defined?(Rails)
 
+require 'active_support/concern'
+require 'active_support/core_ext/class/attribute'
+
 # The base module that gets included in ActiveRecord::Base. See the
 # documentation for Paperclip::ClassMethods for more useful information.
 module Paperclip
-
   VERSION = "2.2.9.2"
+
+  extend ActiveSupport::Concern
+
+  included do
+    class_attribute :attachment_definitions
+    Paperclip::CallbackCompatability.install_to(self)
+  end
 
   class << self
     # Provides configurability to Paperclip. There are a number of options available, such as:
@@ -107,17 +116,6 @@ module Paperclip
 
     def bit_bucket #:nodoc:
       File.exist?("/dev/null") ? "/dev/null" : "NUL"
-    end
-
-    def included base #:nodoc:
-      base.extend ClassMethods
-      base.class_attribute :attachment_definitions
-
-      if base.respond_to?(:set_callback)
-        base.send :include, Paperclip::CallbackCompatability::Rails3
-      else
-        base.send :include, Paperclip::CallbackCompatability::Rails21
-      end
     end
 
     def processor name #:nodoc:
@@ -217,11 +215,7 @@ module Paperclip
     def has_attached_file name, options = {}
       include InstanceMethods
 
-      if attachment_definitions.nil?
-        self.attachment_definitions = {}
-      else
-        self.attachment_definitions = self.attachment_definitions.dup
-      end
+      self.attachment_definitions = self.attachment_definitions&.dup || {}
       attachment_definitions[name] = {:validations => []}.merge(options)
 
       after_save :save_attached_files
@@ -304,10 +298,6 @@ module Paperclip
                                                                      :message      => options[:message],
                                                                      :if           => options[:if],
                                                                      :unless       => options[:unless]}]
-    end
-
-    def attachment_definitions
-      self.attachment_definitions
     end
   end
 
