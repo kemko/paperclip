@@ -74,7 +74,7 @@ module Paperclip
 
         @s3_credentials = Delayeds3.parse_credentials(@options[:s3_credentials])
         @bucket         = @options[:bucket]         || @s3_credentials[:bucket]
-        @bucket         = @bucket.call(self) if @bucket.is_a?(Proc)
+        @bucket         = @bucket.call(self) if @bucket.respond_to?(:call)
         @s3_permissions = @options[:s3_permissions] || 'public-read'
         @s3_protocol    = @options[:s3_protocol]    || (@s3_permissions == 'public-read' ? 'http' : 'https')
         @s3_host_alias  = @options[:s3_host_alias]
