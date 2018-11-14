@@ -14,13 +14,11 @@ module Paperclip
       @default_options ||= {
         :url           => "/system/:attachment/:id/:style/:filename",
         :path          => ":rails_root/public:url",
-        :style_order   => [],
         :styles        => {},
         :default_url   => "/:attachment/:style/missing.png",
         :default_style => :original,
         :validations   => [],
         :storage       => :filesystem,
-#        :whiny         => Paperclip.options[:whiny] || Paperclip.options[:whiny_thumbnails],
         :whiny         => true,
         :restricted_characters  => /[^\w\p{Word}\d\.\-]|(^\.{0,2}$)+/,
         :filename_sanitizer     => nil
@@ -48,7 +46,7 @@ module Paperclip
       attachment_class_cache[storage].new(name, instance, options)
     end
 
-    attr_reader :name, :instance, :style_order, :styles, :default_style,
+    attr_reader :name, :instance, :styles, :default_style,
       :convert_options, :queued_for_write, :options
 
     attr_accessor :post_processing
@@ -66,8 +64,6 @@ module Paperclip
       @url               = @url.call(self) if @url.is_a?(Proc)
       @path              = options[:path]
       @path              = @path.call(self) if @path.is_a?(Proc)
-      @style_order       = options[:style_order]
-      @style_order       = @style_order.call(self) if @style_order.is_a?(Proc)
       @styles            = options[:styles]
       @styles            = @styles.call(self) if @styles.is_a?(Proc)
       @default_url       = options[:default_url]
@@ -157,10 +153,6 @@ module Paperclip
     def valid_image_resolution? file
       sizes = FastImage.size(file)
       !sizes || (sizes[0] <= MAX_IMAGE_RESOLUTION && sizes[1] <= MAX_IMAGE_RESOLUTION)
-    end
-
-    def most_appropriate_url
-      # stub for delayed_paperclip
     end
 
     # Returns the public URL of the attachment, with a given style. Note that
@@ -272,18 +264,6 @@ module Paperclip
     def updated_at
       time = instance_read(:updated_at)
       time && time.to_i
-    end
-
-    # Paths and URLs can have a number of variables interpolated into them
-    # to vary the storage location based on name, id, style, class, etc.
-    # This method is a deprecated access into supplying and retrieving these
-    # interpolations. Future access should use either Paperclip.interpolates
-    # or extend the Paperclip::Interpolations module directly.
-    def self.interpolations
-      warn('[DEPRECATION] Paperclip::Attachment.interpolations is deprecated ' +
-           'and will be removed from future versions. ' +
-           'Use Paperclip.interpolates instead')
-      Paperclip::Interpolations
     end
 
     def sanitize_filename(file_name)
@@ -466,8 +446,7 @@ module Paperclip
     end
 
     def post_process_styles #:nodoc:
-      styles_in_order = @style_order.empty? ? @styles : @styles.sort_by{|s| @style_order.index(s.first)}
-      styles_in_order.each do |name, args|
+      styles.each do |name, args|
         begin
           raise RuntimeError.new("Style #{name} has no processors defined.") if args[:processors].blank?
           @queued_for_write[name] = args[:processors].inject(@queued_for_write[:original]) do |file, processor|

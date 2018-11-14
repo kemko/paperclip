@@ -14,9 +14,8 @@ module Paperclip
         end
 
         def parse_credentials creds
-          return @parsed_credentials if @parsed_credentials
           creds = find_credentials(creds).stringify_keys
-          @parsed_credentials ||= (creds[Rails.env] || creds).symbolize_keys
+          (creds[Rails.env] || creds).symbolize_keys
         end
 
         def find_credentials creds
@@ -30,12 +29,6 @@ module Paperclip
           else
             raise ArgumentError, "Credentials are not a path, file, or hash."
           end
-        end
-      end
-
-      class WriteToS3Job < Struct.new(:class_name, :name, :id)
-        def perform
-          WriteToS3Worker.new.perform(class_name, name, id)
         end
       end
 
