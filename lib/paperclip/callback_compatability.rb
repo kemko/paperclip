@@ -1,11 +1,14 @@
 module Paperclip
   module CallbackCompatability
-    module Rails21
-      def self.included(base)
-        base.extend(Defining)
-        base.send(:include, Running)
-      end
+    module_function
 
+    def install_to(base)
+      mod = base.respond_to?(:set_callback) ? Rails3 : Rails21
+      base.extend(mod::Defining)
+      base.send(:include, mod::Running)
+    end
+
+    module Rails21
       module Defining
         def define_paperclip_callbacks(*args)
           args.each do |callback|
@@ -28,11 +31,6 @@ module Paperclip
     end
 
     module Rails3
-      def self.included(base)
-        base.extend(Defining)
-        base.send(:include, Running)
-      end
-
       module Defining
         def define_paperclip_callbacks(*callbacks)
           terminator =
@@ -43,14 +41,15 @@ module Paperclip
             end
           define_callbacks *[callbacks, {terminator: terminator}].flatten
           callbacks.each do |callback|
-            eval <<-end_callbacks
+            class_eval <<~RUBY, __FILE__, __LINE__ + 1
               def before_#{callback}(*args, &blk)
                 set_callback(:#{callback}, :before, *args, &blk)
               end
+
               def after_#{callback}(*args, &blk)
                 set_callback(:#{callback}, :after, *args, &blk)
               end
-            end_callbacks
+            RUBY
           end
         end
       end
@@ -60,9 +59,7 @@ module Paperclip
           run_callbacks(callback, &block)
         end
       end
-
     end
-
   end
 end
 
