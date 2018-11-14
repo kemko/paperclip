@@ -179,7 +179,8 @@ module Paperclip
       def filesystem_paths
         h = {}
         [:original, *@styles.keys].uniq.map do |style|
-          h[style] = filesystem_path(style) if File.exist?(filesystem_path(style))
+          path = filesystem_path(style)
+          h[style] = path if File.exist?(path)
         end
         h
       end
