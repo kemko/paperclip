@@ -46,8 +46,8 @@ module Paperclip
       attachment_class_cache[storage].new(name, instance, options)
     end
 
-    attr_reader :name, :instance, :styles, :default_style,
-      :convert_options, :queued_for_write, :options
+    attr_reader :name, :instance, :styles, :default_style, :default_url,
+      :convert_options, :options, :validations, :processors, :whiny
 
     attr_accessor :post_processing
 
@@ -74,16 +74,19 @@ module Paperclip
       @convert_options   = options[:convert_options] || {}
       @processors        = options[:processors] || [:thumbnail]
       @options           = options
-      @queued_for_delete = []
-      @queued_for_write  = {}
-      @errors            = {}
-      @validation_errors = nil
-      @dirty             = false
 
       @post_processing   = true
-      @processing_url    = options[:processing_url] || @default_url
+      @processing_url    = options[:processing_url] || default_url
 
       normalize_style_definition
+    end
+
+    def queued_for_delete
+      @queued_for_delete ||= []
+    end
+
+    def queued_for_write
+      @queued_for_write ||= {}
     end
 
     # What gets called when you call instance.attachment = File. It clears
@@ -110,7 +113,7 @@ module Paperclip
       end
 
       if image_content_type?(uploaded_file) && !valid_image_resolution?(uploaded_file)
-        @errors[:base] = :too_large
+        errors[:base] = :too_large
         return
       end
       return unless valid_assignment?(uploaded_file)
@@ -120,10 +123,10 @@ module Paperclip
 
       return if uploaded_file.nil?
 
-      @queued_for_write[:original] = to_tempfile(uploaded_file)
+      queued_for_write[:original] = to_tempfile(uploaded_file)
 
-      file_name = if @options[:filename_sanitizer]
-        @options[:filename_sanitizer].call uploaded_file.original_filename, self
+      file_name = if options[:filename_sanitizer]
+        options[:filename_sanitizer].call uploaded_file.original_filename, self
       else
         sanitize_filename uploaded_file.original_filename
       end
@@ -140,7 +143,7 @@ module Paperclip
       updater = :"#{name}_file_name_will_change!"
       instance.send updater if instance.respond_to? updater
       # Reset the file size if the original file was reprocessed.
-      instance_write(:file_size, @queued_for_write[:original].size.to_i)
+      instance_write(:file_size, queued_for_write[:original].size.to_i)
     ensure
       uploaded_file.close if close_uploaded_file
       validate
@@ -168,7 +171,7 @@ module Paperclip
     # update time appended to the url
     def url style = default_style, include_updated_timestamp = true
       # for delayed_paperclip
-      return interpolate(@processing_url, style) if @instance.try("#{name}_processing?")
+      return interpolate(processing_url, style) if instance.try("#{name}_processing?")
       interpolate_url(@url, style, include_updated_timestamp)
     end
 
@@ -178,7 +181,7 @@ module Paperclip
     end
 
     def interpolate_url(template, style, include_updated_timestamp)
-      url = original_filename.nil? ? interpolate(@default_url, style) : interpolate(template, style)
+      url = original_filename.nil? ? interpolate(default_url, style) : interpolate(template, style)
       include_updated_timestamp && updated_at ? [url, updated_at].compact.join(url.include?("?") ? "&" : "?") : url
     end
 
@@ -206,12 +209,12 @@ module Paperclip
 
     # Returns an array containing the errors on this attachment.
     def errors
-      @errors
+      @errors ||= {}
     end
 
     # Returns true if there are changes that need to be saved.
     def dirty?
-      @dirty
+      @dirty || false
     end
 
     # Saves the file, if there are no errors. If there are, it flushes them to
@@ -233,8 +236,8 @@ module Paperclip
     # use #destroy.
     def clear
       queue_existing_for_delete
-      @errors            = {}
-      @validation_errors = nil
+      errors.clear
+      @validated = false
     end
 
     # Destroys the attachment. Has the same effect as previously assigning
@@ -254,7 +257,7 @@ module Paperclip
     # Returns the size of the file as originally assigned, and lives in the
     # <attachment>_file_size attribute of the model.
     def size
-      instance_read(:file_size) || (@queued_for_write[:original] && @queued_for_write[:original].size)
+      instance_read(:file_size) || (queued_for_write[:original] && queued_for_write[:original].size)
     end
 
     # Returns the content_type of the file as originally assigned, and lives
@@ -284,7 +287,7 @@ module Paperclip
 
     def sanitize_filename(file_name)
       file_name = file_name.strip
-      file_name.gsub!(@options[:restricted_characters], '_') if @options[:restricted_characters]
+      file_name.gsub!(options[:restricted_characters], '_') if options[:restricted_characters]
 
       # Укорачиваем слишком длинные имена файлов.
       if file_name.length > MAX_FILE_NAME_LENGTH
@@ -328,14 +331,6 @@ module Paperclip
       instance.send(setter, value) if responds || attr.to_s == "file_name"
     end
 
-    def instance_update(attr, value)
-      setter = :"#{name}_#{attr}="
-      responds = instance.respond_to?(setter)
-      self.instance_variable_set("@_#{setter.to_s.chop}", value)
-      instance.update_attribute(:"#{name}_#{attr}", value) if responds
-    end
-
-
     # Reads the attachment-specific attribute on the instance. See instance_write
     # for more details.
     def instance_read(attr)
@@ -350,8 +345,8 @@ module Paperclip
 
     def ensure_required_accessors! #:nodoc:
       %w(file_name).each do |field|
-        unless @instance.respond_to?("#{name}_#{field}") && @instance.respond_to?("#{name}_#{field}=")
-          raise PaperclipError.new("#{@instance.class} model missing required attr_accessor for '#{name}_#{field}'")
+        unless instance.respond_to?("#{name}_#{field}") && instance.respond_to?("#{name}_#{field}=")
+          raise PaperclipError.new("#{instance.class} model missing required attr_accessor for '#{name}_#{field}'")
         end
       end
     end
@@ -365,16 +360,13 @@ module Paperclip
     end
 
     def validate #:nodoc:
-      unless @validation_errors
-        @validation_errors = @validations.inject({}) do |errors, validation|
-          name, options = validation
-          errors[name] = send(:"validate_#{name}", options) if allow_validation?(options)
-          errors
-        end
-        @validation_errors.reject!{|k,v| v == nil }
-        @errors.merge!(@validation_errors)
+      return if @validated
+      validations.each do |validation|
+        name, options = validation
+        error = send(:"validate_#{name}", options) if allow_validation?(options)
+        errors[name] = error if error
       end
-      @validation_errors
+      @validated = true
     end
 
     def allow_validation? options #:nodoc:
@@ -416,27 +408,27 @@ module Paperclip
         unless args.is_a? Hash
           dimensions, format = [args, nil].flatten[0..1]
           format             = nil if format.blank?
-          @styles[name]      = {
-            :processors      => @processors,
+          styles[name]      = {
+            :processors      => processors,
             :geometry        => dimensions,
             :format          => format,
-            :whiny           => @whiny,
+            :whiny           => whiny,
             :convert_options => extra_options_for(name)
           }
         else
-          @styles[name] = {
-            :processors => @processors,
-            :whiny => @whiny,
+          styles[name] = {
+            :processors => processors,
+            :whiny => whiny,
             :convert_options => extra_options_for(name)
-          }.merge(@styles[name])
+          }.merge(styles[name])
         end
       end
     end
 
     def solidify_style_definitions #:nodoc:
-      @styles.each do |name, args|
-        @styles[name][:geometry] = @styles[name][:geometry].call(instance) if @styles[name][:geometry].respond_to?(:call)
-        @styles[name][:processors] = @styles[name][:processors].call(instance) if @styles[name][:processors].respond_to?(:call)
+      styles.each do |name, args|
+        styles[name][:geometry] = styles[name][:geometry].call(instance) if styles[name][:geometry].respond_to?(:call)
+        styles[name][:processors] = styles[name][:processors].call(instance) if styles[name][:processors].respond_to?(:call)
       end
     end
 
@@ -451,7 +443,7 @@ module Paperclip
 
     def post_process #:nodoc:
       return unless content_type.match(/image/)
-      return if @queued_for_write[:original].nil?
+      return if queued_for_write[:original].nil?
       solidify_style_definitions
 
       instance.run_paperclip_callbacks(:post_process) do
@@ -465,12 +457,12 @@ module Paperclip
       styles.each do |name, args|
         begin
           raise RuntimeError.new("Style #{name} has no processors defined.") if args[:processors].blank?
-          @queued_for_write[name] = args[:processors].inject(@queued_for_write[:original]) do |file, processor|
+          queued_for_write[name] = args[:processors].inject(queued_for_write[:original]) do |file, processor|
             Paperclip.processor(processor).make(file, args, self)
           end
         rescue PaperclipError => e
           log("An error was received while processing: #{e.inspect}")
-          (@errors[:processing] ||= []) << e.message if @whiny
+          (errors[:processing] ||= []) << e.message if whiny
         end
       end
     end
@@ -481,20 +473,20 @@ module Paperclip
 
     def queue_existing_for_delete #:nodoc:
       return unless file?
-      @queued_for_delete += [:original, *@styles.keys].uniq.map do |style|
+      queued_for_delete += [:original, *styles.keys].uniq.map do |style|
         filesystem_path(style)
       end.compact
     end
 
     def flush_errors #:nodoc:
-      @errors.each do |error, message|
+      errors.each do |error, message|
         [message].flatten.each {|m| instance.errors.add(name, m) }
       end
     end
 
     # Backported from upstream for S3. Do we need this for all storages?
     def after_flush_writes
-      unlink_files(@queued_for_write.values)
+      unlink_files(queued_for_write.values)
     end
 
     def unlink_files(files)

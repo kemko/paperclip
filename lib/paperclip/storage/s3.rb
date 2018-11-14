@@ -152,32 +152,32 @@ module Paperclip
       def initialize(*)
         super
 
-        @s3_options     = @options[:s3_options]     || {}
-        @s3_permissions = set_permissions(@options[:s3_permissions])
-        @s3_protocol    = @options[:s3_protocol] || "".freeze
-        @s3_metadata = @options[:s3_metadata] || {}
+        @s3_options     = options[:s3_options]     || {}
+        @s3_permissions = set_permissions(options[:s3_permissions])
+        @s3_protocol    = options[:s3_protocol] || "".freeze
+        @s3_metadata = options[:s3_metadata] || {}
         @s3_headers = {}
-        merge_s3_headers(@options[:s3_headers], @s3_headers, @s3_metadata)
+        merge_s3_headers(options[:s3_headers], @s3_headers, @s3_metadata)
 
-        @s3_storage_class = set_storage_class(@options[:s3_storage_class])
+        @s3_storage_class = set_storage_class(options[:s3_storage_class])
 
         @s3_server_side_encryption = "AES256"
-        if @options[:s3_server_side_encryption].blank?
+        if options[:s3_server_side_encryption].blank?
           @s3_server_side_encryption = false
         end
         if @s3_server_side_encryption
-          @s3_server_side_encryption = @options[:s3_server_side_encryption]
+          @s3_server_side_encryption = options[:s3_server_side_encryption]
         end
 
-        unless @options[:url].to_s.match(/\A:s3.*url\z/) || @options[:url] == ":asset_host".freeze
-          @options[:path] = @path.gsub(/:url/, @options[:url]).sub(/\A:rails_root\/public\/system/, "".freeze)
-          @options[:url]  = ":s3_path_url".freeze
+        unless options[:url].to_s.match(/\A:s3.*url\z/) || options[:url] == ":asset_host".freeze
+          options[:path] = @path.gsub(/:url/, options[:url]).sub(/\A:rails_root\/public\/system/, "".freeze)
+          options[:url]  = ":s3_path_url".freeze
         end
-        @options[:url] = @options[:url].inspect if @options[:url].is_a?(Symbol)
+        options[:url] = options[:url].inspect if options[:url].is_a?(Symbol)
 
-        @http_proxy = @options[:http_proxy] || nil
+        @http_proxy = options[:http_proxy] || nil
 
-        @use_accelerate_endpoint = @options[:use_accelerate_endpoint]
+        @use_accelerate_endpoint = options[:use_accelerate_endpoint]
       end
 
       def expiring_url(time = 3600, style_name = default_style)
@@ -193,41 +193,41 @@ module Paperclip
       end
 
       def s3_credentials
-        @s3_credentials ||= parse_credentials(@options[:s3_credentials])
+        @s3_credentials ||= parse_credentials(options[:s3_credentials])
       end
 
       def s3_host_name
-        host_name = @options[:s3_host_name]
+        host_name = options[:s3_host_name]
         host_name = host_name.call(self) if host_name.respond_to?(:call)
 
         host_name || s3_credentials[:s3_host_name] || "s3.amazonaws.com".freeze
       end
 
       def s3_region
-        region = @options[:s3_region]
+        region = options[:s3_region]
         region = region.call(self) if region.respond_to?(:call)
 
         region || s3_credentials[:s3_region]
       end
 
       def s3_host_alias
-        @s3_host_alias = @options[:s3_host_alias]
+        @s3_host_alias = options[:s3_host_alias]
         @s3_host_alias = @s3_host_alias.call(self) if @s3_host_alias.respond_to?(:call)
         @s3_host_alias
       end
 
       def s3_prefixes_in_alias
-        @s3_prefixes_in_alias ||= @options[:s3_prefixes_in_alias].to_i
+        @s3_prefixes_in_alias ||= options[:s3_prefixes_in_alias].to_i
       end
 
       def s3_url_options
-        s3_url_options = @options[:s3_url_options] || {}
+        s3_url_options = options[:s3_url_options] || {}
         s3_url_options = s3_url_options.call(instance) if s3_url_options.respond_to?(:call)
         s3_url_options
       end
 
       def bucket_name
-        @bucket = @options[:bucket] || s3_credentials[:bucket]
+        @bucket = options[:bucket] || s3_credentials[:bucket]
         @bucket = @bucket.call(self) if @bucket.respond_to?(:call)
         @bucket or raise ArgumentError, "missing required :bucket option"
       end
@@ -351,7 +351,7 @@ module Paperclip
       end
 
       def flush_writes #:nodoc:
-        @queued_for_write.each do |style, file|
+        queued_for_write.each do |style, file|
         retries = 0
           begin
             log("saving #{path(style)}")
@@ -397,11 +397,11 @@ module Paperclip
 
         after_flush_writes # allows attachment to clean up temp files
 
-        @queued_for_write = {}
+        queued_for_write.clear
       end
 
       def flush_deletes #:nodoc:
-        @queued_for_delete.each do |path|
+        queued_for_delete.each do |path|
           begin
             log("deleting #{path}")
             s3_bucket.object(path.sub(%r{\A/}, "")).delete
@@ -409,7 +409,7 @@ module Paperclip
             # Ignore this.
           end
         end
-        @queued_for_delete = []
+        queued_for_delete.clear
       end
 
       def copy_to_local_file(style, local_dest_path)
@@ -425,9 +425,9 @@ module Paperclip
       end
 
       def to_file style = default_style
-        if @queued_for_write[style]
-          @queued_for_write[style].rewind
-          return @queued_for_write[style]
+        if queued_for_write[style]
+          queued_for_write[style].rewind
+          return queued_for_write[style]
         end
         filename = path(style)
         extname  = File.extname(filename)
