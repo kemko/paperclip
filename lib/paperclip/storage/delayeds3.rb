@@ -72,19 +72,19 @@ module Paperclip
       def initialize(*)
         super
 
-        @s3_credentials = Delayeds3.parse_credentials(@options[:s3_credentials])
-        @bucket         = @options[:bucket]         || @s3_credentials[:bucket]
+        @s3_credentials = Delayeds3.parse_credentials(options[:s3_credentials])
+        @bucket         = options[:bucket]         || @s3_credentials[:bucket]
 
-        @fog_provider   = @options[:fog_provider]
-        @fog_directory  = @options[:fog_directory]
-        @fog_credentials = @options[:fog_credentials]
+        @fog_provider   = options[:fog_provider]
+        @fog_directory  = options[:fog_directory]
+        @fog_credentials = options[:fog_credentials]
 
         @queued_jobs    = []
       end
 
       def url(style = default_style, include_updated_timestamp = true)
         # for delayed_paperclip
-        return interpolate(@processing_url, style) if @instance.try("#{name}_processing?")
+        return interpolate(processing_url, style) if instance.try("#{name}_processing?")
         template = instance_read(:synced_to_s3) ? options[:s3_url] : options[:filesystem_url]
         interpolate_url(template, style, include_updated_timestamp)
       end
@@ -139,7 +139,7 @@ module Paperclip
       end
 
       def to_file style = default_style
-        @queued_for_write[style] || (File.new(filesystem_path(style), 'rb') if exists?(style)) || download_file(style)
+        queued_for_write[style] || (File.new(filesystem_path(style), 'rb') if exists?(style)) || download_file(style)
       end
 
       def download_file(style = default_style)
@@ -161,7 +161,7 @@ module Paperclip
 
       def filesystem_paths
         h = {}
-        [:original, *@styles.keys].uniq.map do |style|
+        [:original, *styles.keys].uniq.map do |style|
           path = filesystem_path(style)
           h[style] = path if File.exist?(path)
         end
@@ -220,9 +220,9 @@ module Paperclip
       end
 
       def flush_writes #:nodoc:
-        return if @queued_for_write.empty?
+        return if queued_for_write.empty?
 
-        @queued_for_write.each do |style, file|
+        queued_for_write.each do |style, file|
           file.close
           FileUtils.mkdir_p(File.dirname(filesystem_path(style)))
           log("saving to filesystem #{filesystem_path(style)}")
@@ -240,7 +240,7 @@ module Paperclip
             WriteToFogWorker.perform_async(instance.class.to_s, @name, instance.id)
           }
         end
-        @queued_for_write = {}
+        queued_for_write.clear
       end
 
       # Deletes a file and all parent directories if they are empty
@@ -269,15 +269,15 @@ module Paperclip
         # если мы картинку заливали в облака, значит мы скорее всего ее уже удалили
         # и можно не нагружать хранилище проверками
         if instance_read(:synced_to_fog) && instance_read(:synced_to_s3)
-          @queued_for_delete = []
+          queued_for_delete.clear
           return
         end
 
-        @queued_for_delete.each do |path|
+        queued_for_delete.each do |path|
           log("Deleting local file #{path}")
           delete_recursive(path)
         end
-        @queued_for_delete = []
+        queued_for_delete.clear
       end
 
       def delete_local_files!
