@@ -15,7 +15,7 @@ module Paperclip
 
         def parse_credentials creds
           creds = find_credentials(creds).stringify_keys
-          @parsed_credentials ||= (creds[Rails.env] || creds).symbolize_keys
+          (creds[Rails.env] || creds).symbolize_keys
         end
 
         def find_credentials creds
