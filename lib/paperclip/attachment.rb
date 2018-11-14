@@ -61,11 +61,11 @@ module Paperclip
       options = Attachment.default_options.merge(options)
 
       @url               = options[:url]
-      @url               = @url.call(self) if @url.is_a?(Proc)
+      @url               = @url.call(self) if @url.respond_to?(:call)
       @path              = options[:path]
-      @path              = @path.call(self) if @path.is_a?(Proc)
+      @path              = @path.call(self) if @path.respond_to?(:call)
       @styles            = options[:styles]
-      @styles            = @styles.call(self) if @styles.is_a?(Proc)
+      @styles            = @styles.call(self) if @styles.respond_to?(:call)
       @default_url       = options[:default_url]
       @validations       = options[:validations]
       @default_style     = options[:default_style]
