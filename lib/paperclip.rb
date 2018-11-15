@@ -153,9 +153,6 @@ module Paperclip
   class NotIdentifiedByImageMagickError < PaperclipError #:nodoc:
   end
 
-  class InfiniteInterpolationError < PaperclipError #:nodoc:
-  end
-
   module ClassMethods
     # +has_attached_file+ gives the class it is called on an attribute that maps to a file. This
     # is typically a file stored somewhere on the filesystem and has been uploaded by a user.

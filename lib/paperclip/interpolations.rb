@@ -43,12 +43,11 @@ module Paperclip
       "#{basename(attachment, style_name)}.#{extension(attachment, style_name)}"
     end
 
-    # Returns the interpolated URL. Will raise an error if the url itself
-    # contains ":url" to prevent infinite recursion. This interpolation
-    # is used in the default :path to ease default specifications.
+    # This interpolation is used in the default :path to ease default specifications.
+    # So it just interpolates :url template without checking if preocessing and
+    # file existence.
     def url attachment, style_name
-      raise InfiniteInterpolationError if attachment.options[:url].include?(":url")
-      attachment.url(style_name, false)
+      interpolate(attachment.options[:url], attachment, style_name)
     end
 
     # Returns the timestamp as defined by the <attachment>_updated_at field

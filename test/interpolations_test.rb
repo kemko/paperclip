@@ -67,16 +67,8 @@ class InterpolationsTest < Test::Unit::TestCase
   end
 
   should "reinterpolate :url" do
-    attachment = mock
-    attachment.expects(:options).returns({:url => ":id"})
-    attachment.expects(:url).with(:style, false).returns("1234")
-    assert_equal "1234", Paperclip::Interpolations.url(attachment, :style)
-  end
-
-  should "raise if infinite loop detcted reinterpolating :url" do
-    attachment = mock
-    attachment.expects(:options).returns({:url => ":url"})
-    assert_raises(Paperclip::InfiniteInterpolationError){ Paperclip::Interpolations.url(attachment, :style) }
+    attachment = stub(options: {url: "/:id/"}, instance: stub(id: "1234"))
+    assert_equal "/1234/", Paperclip::Interpolations.url(attachment, :style)
   end
 
   should "return the filename as basename.extension" do
