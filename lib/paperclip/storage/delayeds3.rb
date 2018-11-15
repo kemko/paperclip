@@ -259,7 +259,7 @@ module Paperclip
           FileUtils.chmod(0644, filesystem_path(style))
         end
 
-        unless @queued_for_write.empty? || (delay_processing? && @was_dirty)
+        unless @queued_for_write.empty? || (delay_processing? && dirty?)
           instance.update_column(synced_to_s3_field, false) if instance_read(:synced_to_s3)
           if instance.respond_to?(synced_to_fog_field) && instance_read(:synced_to_fog)
             instance.update_column(synced_to_fog_field, false)
