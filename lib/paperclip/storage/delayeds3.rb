@@ -284,10 +284,9 @@ module Paperclip
       def flush_deletes #:nodoc:
         # если мы картинку заливали в облака, значит мы скорее всего ее уже удалили
         # и можно не нагружать хранилище проверками
-        if !instance.is_a?(AccountFile) && instance_read(:synced_to_fog) &&
-           instance_read(:synced_to_s3)
-           @queued_for_delete = []
-           return
+        if instance_read(:synced_to_fog) && instance_read(:synced_to_s3)
+          @queued_for_delete = []
+          return
         end
 
         @queued_for_delete.each do |path|
@@ -298,7 +297,6 @@ module Paperclip
       end
 
       def delete_local_files!
-        return if instance.is_a?(AccountFile)
         instance.reload
         if instance_read(:synced_to_fog) && instance_read(:synced_to_s3)
           filesystem_paths.values.each do |filename|
