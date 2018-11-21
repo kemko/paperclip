@@ -67,7 +67,7 @@ class InterpolationsTest < Test::Unit::TestCase
   end
 
   should "reinterpolate :url" do
-    attachment = stub(options: {url: "/:id/"}, instance: stub(id: "1234"))
+    attachment = stub(class: stub(url_template: "/:id/"), instance: stub(id: "1234"))
     assert_equal "/1234/", Paperclip::Interpolations.url(attachment, :style)
   end
 

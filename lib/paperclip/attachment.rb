@@ -19,7 +19,6 @@ module Paperclip
         :styles        => {},
         :default_url   => "/:attachment/:style/missing.png",
         :default_style => :original,
-        :validations   => [],
         :storage       => :filesystem,
         :whiny         => true,
         :restricted_characters  => /[^\w\p{Word}\d\.\-]|(^\.{0,2}$)+/,
@@ -27,53 +26,57 @@ module Paperclip
       }
     end
 
-    def self.attachment_class_cache
-      @attachment_class_cache ||= Hash.new do |hash, storage|
-        storage_name = storage.to_s.downcase.camelize
-        unless Storage.const_defined?(storage_name, false)
-          raise "Cannot load storage module '#{storage_name}'"
+    class << self
+      # Every attachment definition creates separate class which stores configuration.
+      # This class is instantiated later with model instance.
+      def build_class(name, options)
+        options = default_options.merge(options)
+        storage_name = options.fetch(:storage).to_s.downcase.camelize
+        storage_module = Storage.const_get(storage_name, false)
+        Class.new(self) do
+          include storage_module
+          setup(name, options)
         end
-        hash[storage] =
-          if storage_name == storage
-            storage_module = Storage.const_get(storage_name)
-            Class.new(self) { include(storage_module) }.tap { |x| const_set(storage_name, x) }
-          else
-            hash[storage_name]
-          end
       end
+
+      # Basic attrs
+      attr_reader :attachment_name, :options, :validations
+
+      # Extracted from options
+      attr_reader :url_template, :path_template, :default_url, :processing_url, :styles, :default_style, :whiny
+
+      def setup(name, options)
+        @attachment_name  = name
+        @options          = options
+        @validations      = []
+        @url_template     = options[:url]
+        @path_template    = options[:path]
+        @default_url      = options[:default_url]
+        @processing_url   = options[:processing_url] || default_url
+        @styles           = StylesParser.new(options).styles
+        @default_style    = options[:default_style]
+        @whiny            = options[:whiny_thumbnails] || options[:whiny]
+      end
+
+      # For delayed_paperclip
+      delegate :[], :[]=, to: :options
     end
 
-    def self.build(name, instance, options = {})
-      storage = options[:storage] || default_options[:storage]
-      attachment_class_cache[storage].new(name, instance, options)
-    end
+    delegate :options, :styles, :default_style, to: :class
 
-    attr_reader :name, :instance, :options, :url_template, :path_template,
-      :styles, :default_style, :default_url, :validations, :whiny
+    attr_reader :instance
 
     attr_accessor :post_processing
 
     # Creates an Attachment object. +name+ is the name of the attachment,
-    # +instance+ is the ActiveRecord object instance it's attached to, and
-    # +options+ is the same as the hash passed to +has_attached_file+.
-    def initialize name, instance, options = {}
-      @name              = name
-      @instance          = instance
+    # +instance+ is the ActiveRecord object instance it's attached to.
+    def initialize(instance)
+      @instance = instance
+      @post_processing = true
+    end
 
-      options = Attachment.default_options.merge(options)
-
-      @url_template      = options[:url]
-      @path_template     = options[:path]
-      @styles            = StylesParser.new(options).styles
-      @default_url       = options[:default_url]
-      @validations       = options[:validations]
-      @default_style     = options[:default_style]
-      @storage           = options[:storage]
-      @whiny             = options[:whiny_thumbnails] || options[:whiny]
-      @options           = options
-
-      @post_processing   = true
-      @processing_url    = options[:processing_url] || default_url
+    def name
+      self.class.attachment_name
     end
 
     def queued_for_delete
@@ -120,11 +123,9 @@ module Paperclip
 
       queued_for_write[:original] = to_tempfile(uploaded_file)
 
-      file_name = if options[:filename_sanitizer]
-        options[:filename_sanitizer].call uploaded_file.original_filename, self
-      else
-        sanitize_filename uploaded_file.original_filename
-      end
+      file_name = uploaded_file.original_filename
+      sanitizer = self.class.options[:filename_sanitizer]
+      file_name = sanitizer ? sanitizer.call(file_name, self) : sanitize_filename(file_name)
 
       instance_write(:file_name,       file_name)
       instance_write(:content_type,    uploaded_file.content_type.to_s.strip)
@@ -164,17 +165,17 @@ module Paperclip
     # update time appended to the url
     def url style = default_style, include_updated_timestamp = true
       # for delayed_paperclip
-      return interpolate(processing_url, style) if instance.try("#{name}_processing?")
-      interpolate_url(url_template, style, include_updated_timestamp)
+      return interpolate(self.class.processing_url, style) if instance.try("#{name}_processing?")
+      interpolate_url(self.class.url_template, style, include_updated_timestamp)
     end
 
     # Метод необходим в ассетах
     def filesystem_url style = default_style, include_updated_timestamp = true
-      interpolate_url(url_template, style, include_updated_timestamp)
+      interpolate_url(self.class.url_template, style, include_updated_timestamp)
     end
 
     def interpolate_url(template, style, include_updated_timestamp)
-      url = original_filename.nil? ? interpolate(default_url, style) : interpolate(template, style)
+      url = original_filename.nil? ? interpolate(self.class.default_url, style) : interpolate(template, style)
       include_updated_timestamp && updated_at ? [url, updated_at].compact.join(url.include?("?") ? "&" : "?") : url
     end
 
@@ -184,7 +185,7 @@ module Paperclip
     # URL, and the :bucket option refers to the S3 bucket.
     def path style = default_style
       return if original_filename.nil?
-      interpolate(path_template, style)
+      interpolate(self.class.path_template, style)
     end
 
     alias_method :filesystem_path, :path
@@ -268,7 +269,9 @@ module Paperclip
 
     def sanitize_filename(file_name)
       file_name = file_name.strip
-      file_name.gsub!(options[:restricted_characters], '_') if options[:restricted_characters]
+
+      restricted_characters = self.class.options[:restricted_characters]
+      file_name.gsub!(restricted_characters, '_') if restricted_characters
 
       # Укорачиваем слишком длинные имена файлов.
       if file_name.length > MAX_FILE_NAME_LENGTH
@@ -342,7 +345,7 @@ module Paperclip
 
     def validate #:nodoc:
       return if @validated
-      validations.each do |validation|
+      self.class.validations.each do |validation|
         name, options = validation
         error = send(:"validate_#{name}", options) if allow_validation?(options)
         errors[name] = error if error
@@ -404,7 +407,7 @@ module Paperclip
           end
         rescue PaperclipError => e
           log("An error was received while processing: #{e.inspect}")
-          (errors[:processing] ||= []) << e.message if whiny
+          (errors[:processing] ||= []) << e.message if self.class.whiny
         end
       end
     end
