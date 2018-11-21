@@ -61,11 +61,8 @@ module Paperclip
       options = Attachment.default_options.merge(options)
 
       @url               = options[:url]
-      @url               = @url.call(self) if @url.respond_to?(:call)
       @path              = options[:path]
-      @path              = @path.call(self) if @path.respond_to?(:call)
       @styles            = options[:styles]
-      @styles            = @styles.call(self) if @styles.respond_to?(:call)
       @default_url       = options[:default_url]
       @validations       = options[:validations]
       @default_style     = options[:default_style]
@@ -417,26 +414,15 @@ module Paperclip
       end
     end
 
-    def solidify_style_definitions #:nodoc:
-      @styles.each do |name, args|
-        @styles[name][:geometry] = @styles[name][:geometry].call(instance) if @styles[name][:geometry].respond_to?(:call)
-        @styles[name][:processors] = @styles[name][:processors].call(instance) if @styles[name][:processors].respond_to?(:call)
-      end
-    end
-
     def extra_options_for(style) #:nodoc:
       all_options   = convert_options[:all]
-      all_options   = all_options.call(instance)   if all_options.respond_to?(:call)
       style_options = convert_options[style]
-      style_options = style_options.call(instance) if style_options.respond_to?(:call)
-
-      [ style_options, all_options ].compact.join(" ")
+      [style_options, all_options].compact.join(' ')
     end
 
     def post_process #:nodoc:
       return unless content_type.match(/image/)
       return if @queued_for_write[:original].nil?
-      solidify_style_definitions
 
       instance.run_paperclip_callbacks(:post_process) do
         instance.run_paperclip_callbacks(:"#{name}_post_process") do
