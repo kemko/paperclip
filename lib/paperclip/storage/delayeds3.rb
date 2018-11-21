@@ -159,21 +159,14 @@ module Paperclip
 
       def download_file(style = default_style)
         return unless instance_read(:synced_to_s3)
-        temp_file = Tempfile.new(['product_image', File.extname(filesystem_path(style))], encoding: 'ascii-8bit')
         uri = URI(URI.encode(url(style)))
-        Net::HTTP.start(uri.host, uri.port) do |http|
-          req = Net::HTTP::Get.new uri
-          http.request(req) do |response|
-            if response.is_a?(Net::HTTPOK)
-              response.read_body{|chunk| temp_file.write(chunk)}
-            else
-              return nil
-            end
-          end
-        end
-        temp_file.flush
-        temp_file.rewind
-        temp_file
+        response = Net::HTTP.get_response(uri)
+        return unless response.is_a?(Net::HTTPOK)
+        extname = File.extname(uri.path)
+        basename = File.basename(uri.path, extname)
+        file = Tempfile.new([basename, extname]).tap(&:binmode)
+        file.write(response.body)
+        file.tap(&:flush).tap(&:rewind)
       end
 
       alias_method :to_io, :to_file
