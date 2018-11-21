@@ -74,9 +74,6 @@ module Paperclip
 
         @s3_credentials = Delayeds3.parse_credentials(@options[:s3_credentials])
         @bucket         = @options[:bucket]         || @s3_credentials[:bucket]
-        @s3_permissions = @options[:s3_permissions] || 'public-read'
-        @s3_protocol    = @options[:s3_protocol]    || (@s3_permissions == 'public-read' ? 'http' : 'https')
-        @s3_host_alias  = @options[:s3_host_alias]
 
         @fog_provider   = @options[:fog_provider]
         @fog_directory  = @options[:fog_directory]
@@ -133,10 +130,6 @@ module Paperclip
         @bucket
       end
 
-      def s3_host_alias
-        @s3_host_alias
-      end
-
       def synced_to_s3_field
         @synced_to_s3_field ||= "#{name}_synced_to_s3".freeze
       end
@@ -162,10 +155,6 @@ module Paperclip
       end
 
       alias_method :to_io, :to_file
-
-      def s3_protocol
-        @s3_protocol
-      end
 
       def exists?(style = default_style)
         File.exist?(filesystem_path(style))
@@ -234,7 +223,6 @@ module Paperclip
           instance.touch
         end
       end
-
 
       def flush_writes #:nodoc:
         return if @queued_for_write.empty?
