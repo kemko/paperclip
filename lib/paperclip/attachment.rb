@@ -1,5 +1,7 @@
 require 'fastimage'
 
+require 'paperclip/styles_parser'
+
 module Paperclip
   # The Attachment class manages the files for a given attachment. It saves
   # when the model saves, deletes when the model is destroyed, and processes
@@ -46,8 +48,7 @@ module Paperclip
       attachment_class_cache[storage].new(name, instance, options)
     end
 
-    attr_reader :name, :instance, :styles, :default_style,
-      :convert_options, :queued_for_write, :options
+    attr_reader :name, :instance, :styles, :default_style, :queued_for_write, :options
 
     attr_accessor :post_processing
 
@@ -62,14 +63,12 @@ module Paperclip
 
       @url               = options[:url]
       @path              = options[:path]
-      @styles            = options[:styles]
+      @styles            = StylesParser.new(options).styles
       @default_url       = options[:default_url]
       @validations       = options[:validations]
       @default_style     = options[:default_style]
       @storage           = options[:storage]
       @whiny             = options[:whiny_thumbnails] || options[:whiny]
-      @convert_options   = options[:convert_options] || {}
-      @processors        = options[:processors] || [:thumbnail]
       @options           = options
       @queued_for_delete = []
       @queued_for_write  = {}
@@ -79,8 +78,6 @@ module Paperclip
 
       @post_processing   = true
       @processing_url    = options[:processing_url] || @default_url
-
-      normalize_style_definition
     end
 
     # What gets called when you call instance.attachment = File. It clears
@@ -390,34 +387,6 @@ module Paperclip
           end
         end
       end
-    end
-
-    def normalize_style_definition #:nodoc:
-      styles.each do |name, args|
-        unless args.is_a? Hash
-          dimensions, format = [args, nil].flatten[0..1]
-          format             = nil if format.blank?
-          @styles[name]      = {
-            :processors      => @processors,
-            :geometry        => dimensions,
-            :format          => format,
-            :whiny           => @whiny,
-            :convert_options => extra_options_for(name)
-          }
-        else
-          @styles[name] = {
-            :processors => @processors,
-            :whiny => @whiny,
-            :convert_options => extra_options_for(name)
-          }.merge(@styles[name])
-        end
-      end
-    end
-
-    def extra_options_for(style) #:nodoc:
-      all_options   = convert_options[:all]
-      style_options = convert_options[style]
-      [style_options, all_options].compact.join(' ')
     end
 
     def post_process #:nodoc:
