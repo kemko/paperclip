@@ -119,16 +119,9 @@ module Paperclip
         @queued_jobs = []
       end
 
-      def url(style = default_style, include_updated_timestamp = true)
-        # for delayed_paperclip
-        return interpolate(self.class.processing_url, style) if instance.try("#{name}_processing?")
+      def storage_url(style = default_style)
         template = instance_read(:synced_to_s3) ? self.class.s3_url_template : self.class.filesystem_url_template
-        interpolate_url(template, style, include_updated_timestamp)
-      end
-
-      # Метод необходим в ассетах
-      def filesystem_url(style = default_style, include_updated_timestamp = true)
-        interpolate_url(self.class.filesystem_url_template, style, include_updated_timestamp)
+        interpolate(template, style)
       end
 
       def path(style = default_style)

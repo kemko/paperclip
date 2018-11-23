@@ -166,17 +166,13 @@ module Paperclip
     def url style = default_style, include_updated_timestamp = true
       # for delayed_paperclip
       return interpolate(self.class.processing_url, style) if instance.try("#{name}_processing?")
-      interpolate_url(self.class.url_template, style, include_updated_timestamp)
+      url = original_filename.nil? ? interpolate(self.class.default_url, style) : storage_url(style)
+      return url unless include_updated_timestamp && (time_param = updated_at)
+      "#{url}#{url.include?("?") ? "&" : "?"}#{time_param}"
     end
 
-    # Метод необходим в ассетах
-    def filesystem_url style = default_style, include_updated_timestamp = true
-      interpolate_url(self.class.url_template, style, include_updated_timestamp)
-    end
-
-    def interpolate_url(template, style, include_updated_timestamp)
-      url = original_filename.nil? ? interpolate(self.class.default_url, style) : interpolate(template, style)
-      include_updated_timestamp && updated_at ? [url, updated_at].compact.join(url.include?("?") ? "&" : "?") : url
+    def storage_url(style = default_style)
+      interpolate(self.class.url_template, style)
     end
 
     # Returns the path of the attachment as defined by the :path option. If the
@@ -187,8 +183,6 @@ module Paperclip
       return if original_filename.nil?
       interpolate(self.class.path_template, style)
     end
-
-    alias_method :filesystem_path, :path
 
     # Alias to +url+
     def to_s style = nil
