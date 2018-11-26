@@ -496,5 +496,16 @@ module Paperclip
         [message].flatten.each {|m| instance.errors.add(name, m) }
       end
     end
+
+    # Create tempfile with given content.
+    # Keeps original extension, and prefix from original basename.
+    def create_tempfile(body)
+      filename = instance_read(:file_name)
+      extname = File.extname(original_filename)
+      basename = File.basename(filename, extname)
+      file = Tempfile.new([basename, extname]).tap(&:binmode)
+      file.write(body)
+      file.tap(&:flush).tap(&:rewind)
+    end
   end
 end

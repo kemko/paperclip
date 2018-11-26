@@ -161,12 +161,7 @@ module Paperclip
         return unless instance_read(:synced_to_s3)
         uri = URI(URI.encode(url(style)))
         response = Net::HTTP.get_response(uri)
-        return unless response.is_a?(Net::HTTPOK)
-        extname = File.extname(uri.path)
-        basename = File.basename(uri.path, extname)
-        file = Tempfile.new([basename, extname]).tap(&:binmode)
-        file.write(response.body)
-        file.tap(&:flush).tap(&:rewind)
+        create_tempfile(response.body) if response.is_a?(Net::HTTPOK)
       end
 
       alias_method :to_io, :to_file
