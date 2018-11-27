@@ -42,11 +42,20 @@ require 'paperclip/matchers'
 require 'paperclip/callback_compatability'
 require 'paperclip/railtie' if defined?(Rails)
 
+require 'active_support/concern'
+require 'active_support/core_ext/class/attribute'
+
 # The base module that gets included in ActiveRecord::Base. See the
 # documentation for Paperclip::ClassMethods for more useful information.
 module Paperclip
-
   VERSION = "2.2.9.2"
+
+  extend ActiveSupport::Concern
+
+  included do
+    class_attribute :attachment_definitions
+    Paperclip::CallbackCompatability.install_to(self)
+  end
 
   class << self
     # Provides configurability to Paperclip. There are a number of options available, such as:
@@ -107,17 +116,6 @@ module Paperclip
 
     def bit_bucket #:nodoc:
       File.exist?("/dev/null") ? "/dev/null" : "NUL"
-    end
-
-    def included base #:nodoc:
-      base.extend ClassMethods
-      base.class_attribute :attachment_definitions
-
-      if base.respond_to?(:set_callback)
-        base.send :include, Paperclip::CallbackCompatability::Rails3
-      else
-        base.send :include, Paperclip::CallbackCompatability::Rails21
-      end
     end
 
     def processor name #:nodoc:
@@ -217,11 +215,7 @@ module Paperclip
     def has_attached_file name, options = {}
       include InstanceMethods
 
-      if attachment_definitions.nil?
-        self.attachment_definitions = {}
-      else
-        self.attachment_definitions = self.attachment_definitions.dup
-      end
+      self.attachment_definitions = self.attachment_definitions&.dup || {}
       attachment_definitions[name] = {:validations => []}.merge(options)
 
       after_save :save_attached_files
@@ -258,16 +252,13 @@ module Paperclip
     # * +if+: A lambda or name of a method on the instance. Validation will only
     #   be run is this lambda or method returns true.
     # * +unless+: Same as +if+ but validates if lambda or method returns false.
-    def validates_attachment_size name, options = {}
+    def validates_attachment_size(name, **options)
       min     = options[:greater_than] || (options[:in] && options[:in].first) || 0
       max     = options[:less_than]    || (options[:in] && options[:in].last)  || (1.0/0)
-      range   = (min..max)
-      message = options[:message] || "file size must be between :min and :max bytes."
-
-      attachment_definitions[name][:validations] << [:size, {:range   => range,
-                                                             :message => message,
-                                                             :if      => options[:if],
-                                                             :unless  => options[:unless]}]
+      _add_attachment_validation(name, :size, options,
+        message: "file size must be between :min and :max bytes.",
+        range: (min..max)
+      )
     end
 
     # Places ActiveRecord-style validations on the presence of a file.
@@ -275,12 +266,8 @@ module Paperclip
     # * +if+: A lambda or name of a method on the instance. Validation will only
     #   be run is this lambda or method returns true.
     # * +unless+: Same as +if+ but validates if lambda or method returns false.
-    def validates_attachment_presence name, options = {}
-      message = options[:message] || :blank
-
-      attachment_definitions[name][:validations] << [:presence, {:message => message,
-                                                                 :if      => options[:if],
-                                                                 :unless  => options[:unless]}]
+    def validates_attachment_presence(name, **options)
+      _add_attachment_validation(name, :presence, options, message: :blank)
     end
 
     # Places ActiveRecord-style validations on the content type of the file
@@ -299,15 +286,16 @@ module Paperclip
     # NOTE: If you do not specify an [attachment]_content_type field on your
     # model, content_type validation will work _ONLY upon assignment_ and
     # re-validation after the instance has been reloaded will always succeed.
-    def validates_attachment_content_type name, options = {}
-      attachment_definitions[name][:validations] << [:content_type, {:content_type => options[:content_type],
-                                                                     :message      => options[:message],
-                                                                     :if           => options[:if],
-                                                                     :unless       => options[:unless]}]
+    def validates_attachment_content_type(name, content_type:, **options)
+      _add_attachment_validation(name, :content_type, options, content_type: content_type)
     end
 
-    def attachment_definitions
-      self.attachment_definitions
+    def _add_attachment_validation(name, type, default_options, options)
+      attachment_definitions[name][:validations] << [
+        type,
+        **options,
+        **default_options.slice(:message, :if, :unless)
+      ]
     end
   end
 

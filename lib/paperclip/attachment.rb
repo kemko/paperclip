@@ -1,5 +1,7 @@
 require 'fastimage'
 
+require 'paperclip/styles_parser'
+
 module Paperclip
   # The Attachment class manages the files for a given attachment. It saves
   # when the model saves, deletes when the model is destroyed, and processes
@@ -14,13 +16,11 @@ module Paperclip
       @default_options ||= {
         :url           => "/system/:attachment/:id/:style/:filename",
         :path          => ":rails_root/public:url",
-        :style_order   => [],
         :styles        => {},
         :default_url   => "/:attachment/:style/missing.png",
         :default_style => :original,
         :validations   => [],
         :storage       => :filesystem,
-#        :whiny         => Paperclip.options[:whiny] || Paperclip.options[:whiny_thumbnails],
         :whiny         => true,
         :restricted_characters  => /[^\w\p{Word}\d\.\-]|(^\.{0,2}$)+/,
         :filename_sanitizer     => nil
@@ -48,8 +48,7 @@ module Paperclip
       attachment_class_cache[storage].new(name, instance, options)
     end
 
-    attr_reader :name, :instance, :style_order, :styles, :default_style,
-      :convert_options, :queued_for_write, :options
+    attr_reader :name, :instance, :styles, :default_style, :queued_for_write, :options
 
     attr_accessor :post_processing
 
@@ -63,20 +62,13 @@ module Paperclip
       options = Attachment.default_options.merge(options)
 
       @url               = options[:url]
-      @url               = @url.call(self) if @url.is_a?(Proc)
       @path              = options[:path]
-      @path              = @path.call(self) if @path.is_a?(Proc)
-      @style_order       = options[:style_order]
-      @style_order       = @style_order.call(self) if @style_order.is_a?(Proc)
-      @styles            = options[:styles]
-      @styles            = @styles.call(self) if @styles.is_a?(Proc)
+      @styles            = StylesParser.new(options).styles
       @default_url       = options[:default_url]
       @validations       = options[:validations]
       @default_style     = options[:default_style]
       @storage           = options[:storage]
       @whiny             = options[:whiny_thumbnails] || options[:whiny]
-      @convert_options   = options[:convert_options] || {}
-      @processors        = options[:processors] || [:thumbnail]
       @options           = options
       @queued_for_delete = []
       @queued_for_write  = {}
@@ -86,8 +78,6 @@ module Paperclip
 
       @post_processing   = true
       @processing_url    = options[:processing_url] || @default_url
-
-      normalize_style_definition
     end
 
     # What gets called when you call instance.attachment = File. It clears
@@ -157,10 +147,6 @@ module Paperclip
     def valid_image_resolution? file
       sizes = FastImage.size(file)
       !sizes || (sizes[0] <= MAX_IMAGE_RESOLUTION && sizes[1] <= MAX_IMAGE_RESOLUTION)
-    end
-
-    def most_appropriate_url
-      # stub for delayed_paperclip
     end
 
     # Returns the public URL of the attachment, with a given style. Note that
@@ -272,18 +258,6 @@ module Paperclip
     def updated_at
       time = instance_read(:updated_at)
       time && time.to_i
-    end
-
-    # Paths and URLs can have a number of variables interpolated into them
-    # to vary the storage location based on name, id, style, class, etc.
-    # This method is a deprecated access into supplying and retrieving these
-    # interpolations. Future access should use either Paperclip.interpolates
-    # or extend the Paperclip::Interpolations module directly.
-    def self.interpolations
-      warn('[DEPRECATION] Paperclip::Attachment.interpolations is deprecated ' +
-           'and will be removed from future versions. ' +
-           'Use Paperclip.interpolates instead')
-      Paperclip::Interpolations
     end
 
     def sanitize_filename(file_name)
@@ -415,48 +389,9 @@ module Paperclip
       end
     end
 
-    def normalize_style_definition #:nodoc:
-      styles.each do |name, args|
-        unless args.is_a? Hash
-          dimensions, format = [args, nil].flatten[0..1]
-          format             = nil if format.blank?
-          @styles[name]      = {
-            :processors      => @processors,
-            :geometry        => dimensions,
-            :format          => format,
-            :whiny           => @whiny,
-            :convert_options => extra_options_for(name)
-          }
-        else
-          @styles[name] = {
-            :processors => @processors,
-            :whiny => @whiny,
-            :convert_options => extra_options_for(name)
-          }.merge(@styles[name])
-        end
-      end
-    end
-
-    def solidify_style_definitions #:nodoc:
-      @styles.each do |name, args|
-        @styles[name][:geometry] = @styles[name][:geometry].call(instance) if @styles[name][:geometry].respond_to?(:call)
-        @styles[name][:processors] = @styles[name][:processors].call(instance) if @styles[name][:processors].respond_to?(:call)
-      end
-    end
-
-    def extra_options_for(style) #:nodoc:
-      all_options   = convert_options[:all]
-      all_options   = all_options.call(instance)   if all_options.respond_to?(:call)
-      style_options = convert_options[style]
-      style_options = style_options.call(instance) if style_options.respond_to?(:call)
-
-      [ style_options, all_options ].compact.join(" ")
-    end
-
     def post_process #:nodoc:
       return unless content_type.match(/image/)
       return if @queued_for_write[:original].nil?
-      solidify_style_definitions
 
       instance.run_paperclip_callbacks(:post_process) do
         instance.run_paperclip_callbacks(:"#{name}_post_process") do
@@ -466,8 +401,7 @@ module Paperclip
     end
 
     def post_process_styles #:nodoc:
-      styles_in_order = @style_order.empty? ? @styles : @styles.sort_by{|s| @style_order.index(s.first)}
-      styles_in_order.each do |name, args|
+      styles.each do |name, args|
         begin
           raise RuntimeError.new("Style #{name} has no processors defined.") if args[:processors].blank?
           @queued_for_write[name] = args[:processors].inject(@queued_for_write[:original]) do |file, processor|

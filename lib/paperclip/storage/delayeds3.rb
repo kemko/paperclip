@@ -14,9 +14,8 @@ module Paperclip
         end
 
         def parse_credentials creds
-          return @parsed_credentials if @parsed_credentials
           creds = find_credentials(creds).stringify_keys
-          @parsed_credentials ||= (creds[Rails.env] || creds).symbolize_keys
+          (creds[Rails.env] || creds).symbolize_keys
         end
 
         def find_credentials creds
@@ -30,12 +29,6 @@ module Paperclip
           else
             raise ArgumentError, "Credentials are not a path, file, or hash."
           end
-        end
-      end
-
-      class WriteToS3Job < Struct.new(:class_name, :name, :id)
-        def perform
-          WriteToS3Worker.new.perform(class_name, name, id)
         end
       end
 
@@ -81,10 +74,6 @@ module Paperclip
 
         @s3_credentials = Delayeds3.parse_credentials(@options[:s3_credentials])
         @bucket         = @options[:bucket]         || @s3_credentials[:bucket]
-        @bucket         = @bucket.call(self) if @bucket.is_a?(Proc)
-        @s3_permissions = @options[:s3_permissions] || 'public-read'
-        @s3_protocol    = @options[:s3_protocol]    || (@s3_permissions == 'public-read' ? 'http' : 'https')
-        @s3_host_alias  = @options[:s3_host_alias]
 
         @fog_provider   = @options[:fog_provider]
         @fog_directory  = @options[:fog_directory]
@@ -141,10 +130,6 @@ module Paperclip
         @bucket
       end
 
-      def s3_host_alias
-        @s3_host_alias
-      end
-
       def synced_to_s3_field
         @synced_to_s3_field ||= "#{name}_synced_to_s3".freeze
       end
@@ -166,10 +151,6 @@ module Paperclip
 
       alias_method :to_io, :to_file
 
-      def s3_protocol
-        @s3_protocol
-      end
-
       def exists?(style = default_style)
         File.exist?(filesystem_path(style))
       end
@@ -181,7 +162,8 @@ module Paperclip
       def filesystem_paths
         h = {}
         [:original, *@styles.keys].uniq.map do |style|
-          h[style] = filesystem_path(style) if File.exist?(filesystem_path(style))
+          path = filesystem_path(style)
+          h[style] = path if File.exist?(path)
         end
         h
       end
@@ -237,8 +219,9 @@ module Paperclip
         end
       end
 
-
       def flush_writes #:nodoc:
+        return if @queued_for_write.empty?
+
         @queued_for_write.each do |style, file|
           file.close
           FileUtils.mkdir_p(File.dirname(filesystem_path(style)))
@@ -247,7 +230,7 @@ module Paperclip
           FileUtils.chmod(0644, filesystem_path(style))
         end
 
-        unless @queued_for_write.empty? || (delay_processing? && dirty?)
+        unless delay_processing? && dirty?
           instance.update_column(synced_to_s3_field, false) if instance_read(:synced_to_s3)
           if instance.respond_to?(synced_to_fog_field) && instance_read(:synced_to_fog)
             instance.update_column(synced_to_fog_field, false)
@@ -285,10 +268,9 @@ module Paperclip
       def flush_deletes #:nodoc:
         # если мы картинку заливали в облака, значит мы скорее всего ее уже удалили
         # и можно не нагружать хранилище проверками
-        if !instance.is_a?(AccountFile) && instance_read(:synced_to_fog) &&
-           instance_read(:synced_to_s3)
-           @queued_for_delete = []
-           return
+        if instance_read(:synced_to_fog) && instance_read(:synced_to_s3)
+          @queued_for_delete = []
+          return
         end
 
         @queued_for_delete.each do |path|
@@ -299,7 +281,6 @@ module Paperclip
       end
 
       def delete_local_files!
-        return if instance.is_a?(AccountFile)
         instance.reload
         if instance_read(:synced_to_fog) && instance_read(:synced_to_s3)
           filesystem_paths.values.each do |filename|
