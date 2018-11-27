@@ -256,6 +256,14 @@ module Paperclip
       instance_read(:content_type)
     end
 
+    def to_file(style = default_style)
+      queued_for_write[style]
+    end
+
+    def to_io(*args)
+      to_file(*args)
+    end
+
     # Returns the last modified time of the file as originally assigned, and
     # lives in the <attachment>_updated_at attribute of the model.
     def updated_at

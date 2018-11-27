@@ -141,7 +141,7 @@ module Paperclip
       end
 
       def to_file style = default_style
-        queued_for_write[style] || (File.new(filesystem_path(style), 'rb') if exists?(style)) || download_file(style)
+        super || (File.new(filesystem_path(style), 'rb') if exists?(style)) || download_file(style)
       end
 
       def download_file(style = default_style)
@@ -150,8 +150,6 @@ module Paperclip
         response = Net::HTTP.get_response(uri)
         create_tempfile(response.body) if response.is_a?(Net::HTTPOK)
       end
-
-      alias_method :to_io, :to_file
 
       def exists?(style = default_style)
         File.exist?(filesystem_path(style))
