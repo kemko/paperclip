@@ -43,7 +43,8 @@ module Paperclip
       attr_reader :attachment_name, :options, :validations
 
       # Extracted from options
-      attr_reader :url_template, :path_template, :default_url, :processing_url, :styles, :default_style, :whiny
+      attr_reader :url_template, :path_template, :default_url, :processing_url,
+        :styles, :all_styles, :default_style, :whiny
 
       def setup(name, options)
         @attachment_name  = name
@@ -54,6 +55,7 @@ module Paperclip
         @default_url      = options[:default_url]
         @processing_url   = options[:processing_url] || default_url
         @styles           = StylesParser.new(options).styles
+        @all_styles       = [:original, *styles.keys].uniq
         @default_style    = options[:default_style]
         @whiny            = options[:whiny_thumbnails] || options[:whiny]
       end
@@ -412,8 +414,7 @@ module Paperclip
 
     def queue_existing_for_delete #:nodoc:
       return unless file?
-      all_styles = [:original, *styles.keys]
-      queued_for_delete.concat(all_styles.uniq.map { |style| filesystem_path(style) }.compact)
+      queued_for_delete.concat(self.class.all_styles)
     end
 
     def flush_errors #:nodoc:

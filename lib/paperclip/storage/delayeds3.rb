@@ -163,7 +163,7 @@ module Paperclip
 
       def filesystem_paths
         h = {}
-        [:original, *styles.keys].uniq.map do |style|
+        self.class.all_styles.uniq.map do |style|
           path = filesystem_path(style)
           h[style] = path if File.exist?(path)
         end
@@ -271,7 +271,8 @@ module Paperclip
           return
         end
 
-        queued_for_delete.each do |path|
+        queued_for_delete.each do |style|
+          path = filesystem_path(style)
           log("Deleting local file #{path}")
           delete_recursive(path)
         end
