@@ -172,7 +172,7 @@ module Paperclip
         return true if instance_read(:synced_to_s3)
         paths = filesystem_paths
         if paths.length < styles.length || paths.empty? # To make monitoring easier
-          raise "Local files not found for Image:#{instance.id}"
+          raise "Local files not found for #{instance.class.name}:#{instance.id}"
         end
         paths.each do |style, file|
           log("saving to s3 #{file}")
@@ -197,7 +197,7 @@ module Paperclip
         return true if instance_read(:synced_to_fog)
         paths = filesystem_paths
         if paths.length < styles.length || paths.empty? # To make monitoring easier
-          raise "Local files not found for Image:#{instance.id}"
+          raise "Local files not found for #{instance.class.name}:#{instance.id}"
         end
         paths.each do |style, file|
           path = s3_path(style)
