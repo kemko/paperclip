@@ -145,7 +145,7 @@ module Paperclip
     end
 
     def valid_image_resolution? file
-      sizes = FastImage.size(file)
+      sizes = FastImage.size(file.path)
       !sizes || (sizes[0] <= MAX_IMAGE_RESOLUTION && sizes[1] <= MAX_IMAGE_RESOLUTION)
     end
 
