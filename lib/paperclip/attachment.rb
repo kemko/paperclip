@@ -104,7 +104,7 @@ module Paperclip
       end
 
       if image_content_type?(uploaded_file) && !valid_image_resolution?(uploaded_file)
-        @errors[:base] = :too_large
+        @errors[:base] = :too_large_resolution
         return
       end
       return unless valid_assignment?(uploaded_file)
