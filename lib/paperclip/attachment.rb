@@ -1,6 +1,8 @@
 require 'fastimage'
 
 require 'paperclip/styles_parser'
+require 'active_support/core_ext/module/delegation'
+require 'active_support/core_ext/string/inflections'
 
 module Paperclip
   # The Attachment class manages the files for a given attachment. It saves
