@@ -47,7 +47,7 @@ module Paperclip
     # So it just interpolates :url template without checking if preocessing and
     # file existence.
     def url attachment, style_name
-      interpolate(attachment.options[:url], attachment, style_name)
+      interpolate(attachment.class.url_template, attachment, style_name)
     end
 
     # Returns the timestamp as defined by the <attachment>_updated_at field

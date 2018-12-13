@@ -216,7 +216,8 @@ module Paperclip
       include InstanceMethods
 
       self.attachment_definitions = self.attachment_definitions&.dup || {}
-      attachment_definitions[name] = {:validations => []}.merge(options)
+      attachment_definitions[name] = Attachment.build_class(name, options)
+      const_set("#{name}_attachment".camelize, attachment_definitions[name])
 
       after_save :save_attached_files
       after_commit :destroy_attached_files, on: :destroy
@@ -291,7 +292,7 @@ module Paperclip
     end
 
     def _add_attachment_validation(name, type, default_options, options)
-      attachment_definitions[name][:validations] << [
+      attachment_definitions[name].validations << [
         type,
         **options,
         **default_options.slice(:message, :if, :unless)
@@ -302,7 +303,7 @@ module Paperclip
   module InstanceMethods #:nodoc:
     def attachment_for name
       @_paperclip_attachments ||= {}
-      @_paperclip_attachments[name] ||= Attachment.build(name, self, self.class.attachment_definitions[name])
+      @_paperclip_attachments[name] ||= self.class.attachment_definitions[name].new(self)
     end
 
     def each_attachment

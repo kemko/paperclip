@@ -1,16 +1,18 @@
+require "sidekiq"
+begin
+  require "aws-sdk-s3"
+rescue LoadError => e
+  e.message << " (You may need to install the aws-sdk-s3 gem)"
+  raise e
+end
+
 module Paperclip
   module Storage
     # Need to create boolean field synced_to_s3
     module Delayeds3
       class << self
-        def included(*)
-          require "sidekiq"
-          begin
-            require "aws-sdk-s3"
-          rescue LoadError => e
-            e.message << " (You may need to install the aws-sdk-s3 gem)"
-            raise e
-          end
+        def included(base)
+          base.extend(ClassMethods)
         end
 
         def parse_credentials creds
@@ -28,6 +30,47 @@ module Paperclip
             creds
           else
             raise ArgumentError, "Credentials are not a path, file, or hash."
+          end
+        end
+      end
+
+      module ClassMethods
+        attr_reader :s3_url_template, :s3_path_template,
+                    :filesystem_url_template, :filesystem_path_template,
+                    :s3_credentials, :s3_bucket,
+                    :fog_provider, :fog_credentials, :fog_directory,
+                    :synced_to_s3_field, :synced_to_fog_field
+
+        def setup(*)
+          super
+
+          @s3_url_template = options[:s3_url]
+          @s3_path_template = options[:s3_path]
+          @filesystem_url_template = options[:filesystem_url]
+          @filesystem_path_template = options[:filesystem_path]
+
+          @s3_credentials = Delayeds3.parse_credentials(options[:s3_credentials])
+          @s3_bucket = options[:bucket] || @s3_credentials[:bucket]
+
+          @fog_provider = options[:fog_provider]
+          @fog_directory = options[:fog_directory]
+          @fog_credentials = options[:fog_credentials].symbolize_keys
+
+          @synced_to_s3_field ||= :"#{attachment_name}_synced_to_s3"
+          @synced_to_fog_field ||= :"#{attachment_name}_synced_to_fog"
+        end
+
+        def fog_storage
+          @fog_storage ||= Fog::Storage.new(fog_credentials.merge(provider: fog_provider))
+        end
+
+        def aws_bucket
+          @aws_bucket ||= begin
+            params = s3_credentials.reject { |_k, v| v.blank? }
+            params[:region] ||= 'us-east-1'
+            s3_client = Aws::S3::Client.new(params)
+            s3_resource = Aws::S3::Resource.new(client: s3_client)
+            s3_resource.bucket(s3_bucket)
           end
         end
       end
@@ -69,40 +112,27 @@ module Paperclip
         end
       end
 
+      delegate :synced_to_s3_field, :synced_to_fog_field, to: :class
+
       def initialize(*)
         super
-
-        @s3_credentials = Delayeds3.parse_credentials(@options[:s3_credentials])
-        @bucket         = @options[:bucket]         || @s3_credentials[:bucket]
-
-        @fog_provider   = @options[:fog_provider]
-        @fog_directory  = @options[:fog_directory]
-        @fog_credentials = @options[:fog_credentials]
-
-        @queued_jobs    = []
+        @queued_jobs = []
       end
 
-      def url(style = default_style, include_updated_timestamp = true)
-        # for delayed_paperclip
-        return interpolate(@processing_url, style) if @instance.try("#{name}_processing?")
-        template = instance_read(:synced_to_s3) ? options[:s3_url] : options[:filesystem_url]
-        interpolate_url(template, style, include_updated_timestamp)
-      end
-
-      # Метод необходим в ассетах
-      def filesystem_url(style = default_style, include_updated_timestamp = true)
-        interpolate_url(options[:filesystem_url], style, include_updated_timestamp)
+      def storage_url(style = default_style)
+        template = instance_read(:synced_to_s3) ? self.class.s3_url_template : self.class.filesystem_url_template
+        interpolate(template, style)
       end
 
       def path(style = default_style)
         return if original_filename.nil?
-        path = instance_read(:synced_to_s3) ? options[:s3_path] : options[:filesystem_path]
+        path = instance_read(:synced_to_s3) ? self.class.s3_path_template : self.class.filesystem_path_template
         interpolate(path, style)
       end
 
       def filesystem_path(style = default_style)
         return if original_filename.nil?
-        interpolate(options[:filesystem_path], style)
+        interpolate(self.class.filesystem_path_template, style)
       end
 
       def reprocess!
@@ -110,36 +140,8 @@ module Paperclip
         flush_jobs
       end
 
-      def aws_bucket
-        return @aws_bucket if @aws_bucket
-
-        params = { region: @s3_credentials[:region] || 'us-east-1',
-                   access_key_id: @s3_credentials[:access_key_id],
-                   secret_access_key: @s3_credentials[:secret_access_key] }
-
-        params[:endpoint] = @s3_credentials[:endpoint] if @s3_credentials[:endpoint].present?
-        params[:http_proxy] = @s3_credentials[:http_proxy] if @s3_credentials[:http_proxy].present?
-
-        s3_client = Aws::S3::Client.new(params)
-
-        s3_resource = Aws::S3::Resource.new(client: s3_client)
-        @aws_bucket = s3_resource.bucket(bucket_name)
-      end
-
-      def bucket_name
-        @bucket
-      end
-
-      def synced_to_s3_field
-        @synced_to_s3_field ||= "#{name}_synced_to_s3".freeze
-      end
-
-      def synced_to_fog_field
-        @synced_to_fog_field ||= "#{name}_synced_to_fog".freeze
-      end
-
       def to_file style = default_style
-        @queued_for_write[style] || (File.new(filesystem_path(style), 'rb') if exists?(style)) || download_file(style)
+        super || (File.new(filesystem_path(style), 'rb') if exists?(style)) || download_file(style)
       end
 
       def download_file(style = default_style)
@@ -149,19 +151,17 @@ module Paperclip
         create_tempfile(response.body) if response.is_a?(Net::HTTPOK)
       end
 
-      alias_method :to_io, :to_file
-
       def exists?(style = default_style)
         File.exist?(filesystem_path(style))
       end
 
       def s3_path style
-        interpolate(options[:s3_path], style)
+        interpolate(self.class.s3_path_template, style)
       end
 
       def filesystem_paths
         h = {}
-        [:original, *@styles.keys].uniq.map do |style|
+        self.class.all_styles.uniq.map do |style|
           path = filesystem_path(style)
           h[style] = path if File.exist?(path)
         end
@@ -176,7 +176,7 @@ module Paperclip
         end
         paths.each do |style, file|
           log("saving to s3 #{file}")
-            s3_object = aws_bucket.object(s3_path(style).gsub(/^\/+/,''))
+            s3_object = self.class.aws_bucket.object(s3_path(style).gsub(/^\/+/,''))
             s3_object.upload_file(file,
                                   cache_control: "max-age=#{10.year.to_i}",
                                   content_type: instance_read(:content_type),
@@ -186,10 +186,6 @@ module Paperclip
         if instance.class.unscoped.where(id: instance.id).update_all(synced_to_s3_field => true) == 1
           instance.touch
         end
-      end
-
-      def fog_storage
-        @fog_storage ||= Fog::Storage.new(@fog_credentials.merge(provider: @fog_provider).symbolize_keys)
       end
 
       def write_to_fog
@@ -210,7 +206,7 @@ module Paperclip
           }
 
           File.open(file, 'r') do |f|
-            fog_storage.put_object @fog_directory, path, f, options
+            self.class.fog_storage.put_object self.class.fog_directory, path, f, options
           end
         end
         # не вызываем колбеки и спокойно себя ведем если объект удален
@@ -220,9 +216,9 @@ module Paperclip
       end
 
       def flush_writes #:nodoc:
-        return if @queued_for_write.empty?
+        return if queued_for_write.empty?
 
-        @queued_for_write.each do |style, file|
+        queued_for_write.each do |style, file|
           file.close
           FileUtils.mkdir_p(File.dirname(filesystem_path(style)))
           log("saving to filesystem #{filesystem_path(style)}")
@@ -240,7 +236,7 @@ module Paperclip
             WriteToFogWorker.perform_async(instance.class.to_s, @name, instance.id)
           }
         end
-        @queued_for_write = {}
+        queued_for_write.clear
       end
 
       # Deletes a file and all parent directories if they are empty
@@ -269,15 +265,16 @@ module Paperclip
         # если мы картинку заливали в облака, значит мы скорее всего ее уже удалили
         # и можно не нагружать хранилище проверками
         if instance_read(:synced_to_fog) && instance_read(:synced_to_s3)
-          @queued_for_delete = []
+          queued_for_delete.clear
           return
         end
 
-        @queued_for_delete.each do |path|
+        queued_for_delete.each do |style|
+          path = filesystem_path(style)
           log("Deleting local file #{path}")
           delete_recursive(path)
         end
-        @queued_for_delete = []
+        queued_for_delete.clear
       end
 
       def delete_local_files!

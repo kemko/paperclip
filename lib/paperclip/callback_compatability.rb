@@ -1,3 +1,5 @@
+require 'active_support/version'
+
 module Paperclip
   module CallbackCompatability
     module_function
@@ -33,7 +35,7 @@ module Paperclip
     module Rails3
       module Defining
         TERMINATOR =
-          if Gem::Version.new(ActiveRecord::VERSION::STRING) >= Gem::Version.new('4.1')
+          if Gem::Version.new(ActiveSupport::VERSION::STRING) >= Gem::Version.new('4.1')
             ->(target, result) { result == false }
           else
             'result == false'

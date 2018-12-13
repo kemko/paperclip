@@ -27,12 +27,11 @@ module Paperclip
       # Returns representation of the data of the file assigned to the given
       # style, in the format most representative of the current storage.
       def to_file style = default_style
-        @queued_for_write[style] || (File.new(path(style), 'rb') if exists?(style))
+        super || (File.new(path(style), 'rb') if exists?(style))
       end
-      alias_method :to_io, :to_file
 
       def flush_writes #:nodoc:
-        @queued_for_write.each do |style, file|
+        queued_for_write.each do |style, file|
           file.close
           filename = path(style)
           FileUtils.mkdir_p(File.dirname(filename))
@@ -40,11 +39,12 @@ module Paperclip
           FileUtils.mv(file.path, filename)
           FileUtils.chmod(0644, filename)
         end
-        @queued_for_write = {}
+        queued_for_write.clear
       end
 
       def flush_deletes #:nodoc:
-        @queued_for_delete.each do |path|
+        queued_for_delete.each do |style|
+          path = self.path(style)
           begin
             log("deleting #{path}")
             FileUtils.rm(path)
@@ -67,7 +67,7 @@ module Paperclip
             # Ignore it
           end
         end
-        @queued_for_delete = []
+        queued_for_delete.clear
       end
     end
   end

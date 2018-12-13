@@ -83,5 +83,5 @@ class FakeModel
 end
 
 def attachment options
-  Paperclip::Attachment.new(:avatar, FakeModel.new, options)
+  Paperclip::Attachment.build_class(:avatar, options).new(FakeModel.new)
 end
