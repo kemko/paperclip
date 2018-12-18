@@ -1,10 +1,11 @@
-require "sidekiq"
 begin
   require "aws-sdk-s3"
 rescue LoadError => e
   e.message << " (You may need to install the aws-sdk-s3 gem)"
   raise e
 end
+
+require_relative './delayed_upload'
 
 module Paperclip
   module Storage
@@ -75,41 +76,22 @@ module Paperclip
         end
       end
 
+      # TODO: Remove legacy workers after migrating to DelayedUpload worker.
       class UploadWorker
         include ::Sidekiq::Worker
         sidekiq_options queue: :paperclip
 
         def perform(class_name, name, id)
-          file = class_name.constantize.find_by_id(id)
-          return unless file
-          attachment = file.send(name)
-          write(attachment)
-          attachment.delete_local_files!
-        rescue Errno::ESTALE
-          raise if attachment && file.class.exists?(file)
-        rescue Errno::ENOENT => e
-          raise if attachment && file.class.exists?(file)
-          Rollbar.warn(e, file_name: extract_file_name_from_error(e))
-        end
-
-        def extract_file_name_from_error(err)
-          err.message.split(' - ')[-1]
+          DelayedUpload.new.perform(class_name, id, name, self.class::STORE_ID)
         end
       end
 
       class WriteToS3Worker < UploadWorker
-        def write(attachment)
-          attachment.write_to_s3
-        end
+        STORE_ID = :s3
       end
 
       class WriteToFogWorker < UploadWorker
-        def write(attachment)
-          attachment.write_to_fog
-        rescue Excon::Errors::SocketError => e
-          raise e.socket_error if e.socket_error.is_a?(Errno::ENOENT) || e.socket_error.is_a?(Errno::ESTALE)
-          raise
-        end
+        STORE_ID = :fog
       end
 
       delegate :synced_to_s3_field, :synced_to_fog_field, to: :class
@@ -213,6 +195,9 @@ module Paperclip
         if instance.class.unscoped.where(id: instance.id).update_all(synced_to_fog_field => true) == 1
           instance.touch
         end
+      rescue Excon::Errors::SocketError => e
+        raise e.socket_error if e.socket_error.is_a?(Errno::ENOENT) || e.socket_error.is_a?(Errno::ESTALE)
+        raise
       end
 
       def flush_writes #:nodoc:
@@ -231,10 +216,8 @@ module Paperclip
           if instance.respond_to?(synced_to_fog_field) && instance_read(:synced_to_fog)
             instance.update_column(synced_to_fog_field, false)
           end
-          @queued_jobs.push -> {
-            WriteToS3Worker.perform_async(instance.class.to_s, @name, instance.id)
-            WriteToFogWorker.perform_async(instance.class.to_s, @name, instance.id)
-          }
+          queued_jobs.push -> { DelayedUpload.upload_later(self, :s3) }
+          queued_jobs.push -> { DelayedUpload.upload_later(self, :fog) }
         end
         queued_for_write.clear
       end
@@ -288,9 +271,21 @@ module Paperclip
       end
 
       def flush_jobs
-        @queued_jobs&.each(&:call)
-        @queued_jobs = []
+        queued_jobs&.each(&:call).clear
       end
+
+      def upload_to(store_id)
+        case store_id.to_s
+        when 's3' then write_to_s3
+        when 'fog' then write_to_fog
+        else raise 'Unknown store id'
+        end
+        delete_local_files!
+      end
+
+      private
+
+      attr_reader :queued_jobs
     end
   end
 end

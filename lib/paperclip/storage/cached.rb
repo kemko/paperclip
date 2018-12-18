@@ -1,4 +1,4 @@
-require "sidekiq"
+require_relative './delayed_upload'
 
 module Paperclip
   module Storage
@@ -58,19 +58,6 @@ module Paperclip
             result[key] = :"#{attachment_name}_synced_to_#{key}"
           end
           @synced_field_names[store_id.to_sym]
-        end
-      end
-
-      class UploadWorker
-        include ::Sidekiq::Worker
-        sidekiq_options queue: :paperclip
-
-        def perform(class_name, id, attachment_name, store_id)
-          instance = class_name.constantize.find_by_id(id)
-          return unless instance
-          attachment = instance.public_send(attachment_name)
-          attachment.sync_to(store_id)
-          attachment.clear_cache
         end
       end
 
@@ -144,6 +131,11 @@ module Paperclip
         queued_jobs&.each(&:call).clear
       end
 
+      def upload_to(store_id)
+        sync_to(store_id)
+        clear_cache
+      end
+
       # Writes files from cache to permanent store.
       def sync_to(store_id)
         synced_field_name = self.class.synced_field_name(store_id)
@@ -188,9 +180,7 @@ module Paperclip
         synced_field_name = self.class.synced_field_name(store_id)
         return unless instance.respond_to?(synced_field_name)
         instance.update_column(synced_field_name, false) if instance[synced_field_name]
-        queued_jobs.push -> {
-          UploadWorker.perform_async(instance.class.name, instance.id, name, store_id)
-        }
+        queued_jobs.push -> { DelayedUpload.upload_later(self, store_id) }
       end
 
       def download_from_fog(store_id, key)
