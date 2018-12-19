@@ -1,5 +1,3 @@
-require_relative './delayed_upload'
-
 module Paperclip
   module Storage
     # Saves file to `:cache` store, and run jobs to copy files to one ore more `:store` store.
