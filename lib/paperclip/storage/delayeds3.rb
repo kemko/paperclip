@@ -5,8 +5,6 @@ rescue LoadError => e
   raise e
 end
 
-require_relative './delayed_upload'
-
 module Paperclip
   module Storage
     # Need to create boolean field synced_to_s3
@@ -74,24 +72,6 @@ module Paperclip
             s3_resource.bucket(s3_bucket)
           end
         end
-      end
-
-      # TODO: Remove legacy workers after migrating to DelayedUpload worker.
-      class UploadWorker
-        include ::Sidekiq::Worker
-        sidekiq_options queue: :paperclip
-
-        def perform(class_name, name, id)
-          DelayedUpload.new.perform(class_name, id, name, self.class::STORE_ID)
-        end
-      end
-
-      class WriteToS3Worker < UploadWorker
-        STORE_ID = :s3
-      end
-
-      class WriteToFogWorker < UploadWorker
-        STORE_ID = :fog
       end
 
       delegate :synced_to_s3_field, :synced_to_fog_field, to: :class
