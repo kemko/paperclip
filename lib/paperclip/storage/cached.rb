@@ -101,9 +101,11 @@ module Paperclip
         raise '#path is not available for this type of storage, use #to_file instead'
       end
 
-      # By default checks main store if synced and cache otherwise.
+      # Checks if attached file exists. When store_id is not given
+      # it uses fast check and does not perform API request for synced files
       def exists?(style = default_style, store_id = nil)
-        store_id ||= synced_to?(self.class.main_store_id) ? self.class.main_store_id : :cache
+        return true if !store_id && synced_to?(self.class.main_store_id)
+        store_id ||= :cache
         !self.class.directory_for(store_id).files.head(key(style)).nil?
       end
 

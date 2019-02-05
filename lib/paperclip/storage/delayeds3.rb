@@ -113,9 +113,11 @@ module Paperclip
         create_tempfile(response.body) if response.is_a?(Net::HTTPOK)
       end
 
-      # By default checks main store if synced and cache otherwise.
+      # Checks if attached file exists. When store_id is not given
+      # it uses fast check and does not perform API request for synced files
       def exists?(style = default_style, store_id = nil)
-        store_id ||= instance_read(:synced_to_s3) ? :s3 : :cache
+        return true if !store_id && instance_read(:synced_to_s3)
+        store_id ||= :cache
         case store_id
         when :cache
           File.exist?(filesystem_path(style))
