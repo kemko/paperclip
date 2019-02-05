@@ -101,8 +101,9 @@ module Paperclip
         raise '#path is not available for this type of storage, use #to_file instead'
       end
 
-      # Checking only cache for backward compatibility with deleayeds3
-      def exists?(style = default_style, store_id = :cache)
+      # By default checks main store if synced and cache otherwise.
+      def exists?(style = default_style, store_id = nil)
+        store_id ||= synced_to?(self.class.main_store_id) ? self.class.main_store_id : :cache
         !self.class.directory_for(store_id).files.head(key(style)).nil?
       end
 
