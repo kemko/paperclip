@@ -113,12 +113,31 @@ module Paperclip
         create_tempfile(response.body) if response.is_a?(Net::HTTPOK)
       end
 
-      def exists?(style = default_style)
-        File.exist?(filesystem_path(style))
+      # Checks if attached file exists. When store_id is not given
+      # it uses fast check and does not perform API request for synced files
+      def exists?(style = default_style, store_id = nil)
+        return true if !store_id && instance_read(:synced_to_s3)
+        store_id ||= :cache
+        case store_id
+        when :cache
+          File.exist?(filesystem_path(style))
+        when :s3
+          self.class.aws_bucket.object(s3_path(style)).exists?
+        when :fog
+          begin
+            self.class.fog_storage.head_object(self.class.fog_directory, s3_path(style))
+            true
+          rescue Excon::Error::NotFound
+            false
+          end
+        else
+          raise 'Unknown store'
+        end
       end
 
       def s3_path style
-        interpolate(self.class.s3_path_template, style)
+        result = interpolate(self.class.s3_path_template, style)
+        result.start_with?('/') ? result[1..-1] : result
       end
 
       def filesystem_paths
@@ -138,7 +157,7 @@ module Paperclip
         end
         paths.each do |style, file|
           log("saving to s3 #{file}")
-            s3_object = self.class.aws_bucket.object(s3_path(style).gsub(/^\/+/,''))
+            s3_object = self.class.aws_bucket.object(s3_path(style))
             s3_object.upload_file(file,
                                   cache_control: "max-age=#{10.year.to_i}",
                                   content_type: instance_read(:content_type),
@@ -159,7 +178,6 @@ module Paperclip
         end
         paths.each do |style, file|
           path = s3_path(style)
-          path = path[1..-1] if path.start_with?('/')
           log "Saving to Fog with key #{path}"
           options = {
             "Content-Type" => instance_read(:content_type),
