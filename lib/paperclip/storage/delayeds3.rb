@@ -103,7 +103,7 @@ module Paperclip
       end
 
       def to_file style = default_style
-        super || (File.new(filesystem_path(style), 'rb') if exists?(style)) || download_file(style)
+        super || (File.new(filesystem_path(style), 'rb') if exists?(style, :cache)) || download_file(style)
       end
 
       def download_file(style = default_style)
