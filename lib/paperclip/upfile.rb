@@ -22,9 +22,11 @@ module Paperclip
       end
     end
 
+    attr_writer :original_filename
+
     # Returns the file's normal name.
     def original_filename
-      File.basename(self.path)
+      @original_filename ||= File.basename(path)
     end
 
     # Returns the size of the file.
