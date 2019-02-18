@@ -34,15 +34,18 @@ module Paperclip
 
     module Rails3
       module Defining
-        TERMINATOR =
-          if Gem::Version.new(ActiveSupport::VERSION::STRING) >= Gem::Version.new('4.1')
-            ->(target, result) { result == false }
+        rails_version = Gem::Version.new(ActiveSupport::VERSION::STRING)
+        CALLBACK_OPTIONS =
+          if rails_version >= Gem::Version.new('5.0')
+            {}
+          elsif rails_version >= Gem::Version.new('4.1')
+            {terminator: ->(target, result) { result == false }}
           else
-            'result == false'
+            {terminator: 'result == false'}
           end
 
         def define_paperclip_callbacks(*callbacks)
-          define_callbacks *[callbacks, {terminator: TERMINATOR}].flatten
+          define_callbacks *callbacks.flatten, CALLBACK_OPTIONS
           callbacks.map(&:to_sym).each do |callback|
             define_singleton_method "before_#{callback}" do |*args, &blk|
               set_callback(callback, :before, *args, &blk)
