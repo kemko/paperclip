@@ -119,11 +119,12 @@ module Paperclip
       end
 
       # Important: It does not delete files from permanent stores.
-      def flush_deletes #:nodoc:
+      def delete_styles_later(styles)
         # если мы картинку заливали в облака, значит мы скорее всего ее уже удалили
         # и можно не нагружать хранилище проверками
-        clear_directory(:cache, queued_for_delete) unless all_synced?
-        queued_for_delete.clear
+        return if all_synced?
+        keys = styles.map { |x| key(x) }
+        -> { delete_keys_from(:cache, keys) }
       end
 
       # Enqueues all pending jobs. First, jobs are placed to internal queue in flush_writes
@@ -159,7 +160,7 @@ module Paperclip
       end
 
       def clear_cache
-        clear_directory(:cache) if all_synced?
+        delete_styles_from(:cache) if all_synced?
       end
 
       private
@@ -207,12 +208,16 @@ module Paperclip
         end
       end
 
-      def clear_directory(store_id, styles = self.class.all_styles)
+      def delete_styles_from(store_id, styles = self.class.all_styles)
+        keys = styles.map { |x| key(x) }
+        delete_keys_from(store_id, keys)
+      end
+
+      def delete_keys_from(store_id, keys)
         directory = self.class.directory_for(store_id)
-        styles.each do |style|
-          path = key(style)
-          log("Deleting #{store_id}:#{path}")
-          directory.files.head(path)&.destroy
+        keys.each do |key|
+          log("Deleting #{store_id}:#{key}")
+          directory.files.head(key)&.destroy
         end
       end
     end

@@ -42,9 +42,13 @@ module Paperclip
         queued_for_write.clear
       end
 
-      def flush_deletes #:nodoc:
-        queued_for_delete.each do |style|
-          path = self.path(style)
+      def delete_styles_later(styles)
+        filenames = styles.map { |style| path(style) }
+        -> { delete_files(filenames) }
+      end
+
+      def delete_files(filenames)
+        filenames.each do |path|
           begin
             log("deleting #{path}")
             FileUtils.rm(path)
@@ -67,7 +71,6 @@ module Paperclip
             # Ignore it
           end
         end
-        queued_for_delete.clear
       end
     end
   end
