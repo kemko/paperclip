@@ -140,9 +140,9 @@ module Paperclip
         result.start_with?('/') ? result[1..-1] : result
       end
 
-      def filesystem_paths
+      def filesystem_paths(styles = self.class.all_styles)
         h = {}
-        self.class.all_styles.uniq.map do |style|
+        styles.uniq.map do |style|
           path = filesystem_path(style)
           h[style] = path if File.exist?(path)
         end
@@ -242,29 +242,18 @@ module Paperclip
         end
       end
 
-      def flush_deletes #:nodoc:
+      def delete_styles_later(styles)
         # если мы картинку заливали в облака, значит мы скорее всего ее уже удалили
         # и можно не нагружать хранилище проверками
-        if instance_read(:synced_to_fog) && instance_read(:synced_to_s3)
-          queued_for_delete.clear
-          return
-        end
-
-        queued_for_delete.each do |style|
-          path = filesystem_path(style)
-          log("Deleting local file #{path}")
-          delete_recursive(path)
-        end
-        queued_for_delete.clear
+        return if instance_read(:synced_to_fog) && instance_read(:synced_to_s3)
+        filenames = filesystem_paths(styles).values
+        -> { delete_local_files!(filenames) }
       end
 
-      def delete_local_files!
-        instance.reload
-        if instance_read(:synced_to_fog) && instance_read(:synced_to_s3)
-          filesystem_paths.values.each do |filename|
-            log("Deleting local file #{filename}")
-            delete_recursive(filename)
-          end
+      def delete_local_files!(filenames = filesystem_paths.values)
+        filesystem_paths.values.each do |filename|
+          log("Deleting local file #{filename}")
+          delete_recursive(filename)
         end
       end
 
@@ -278,7 +267,8 @@ module Paperclip
         when 'fog' then write_to_fog
         else raise 'Unknown store id'
         end
-        delete_local_files!
+        instance.reload
+        delete_local_files! if instance_read(:synced_to_fog) && instance_read(:synced_to_s3)
       end
 
       private

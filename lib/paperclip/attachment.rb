@@ -425,7 +425,13 @@ module Paperclip
 
     def queue_existing_for_delete #:nodoc:
       return unless file?
-      queued_for_delete.concat(self.class.all_styles)
+      action = delete_styles_later(self.class.all_styles)
+      queued_for_delete << action if action
+    end
+
+    def flush_deletes
+      queued_for_delete.each(&:call)
+      queued_for_delete.clear
     end
 
     def flush_errors #:nodoc:
