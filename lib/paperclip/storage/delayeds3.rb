@@ -38,7 +38,9 @@ module Paperclip
                     :filesystem_url_template, :filesystem_path_template,
                     :s3_credentials, :s3_bucket,
                     :fog_provider, :fog_credentials, :fog_directory,
-                    :synced_to_s3_field, :synced_to_fog_field
+                    :synced_to_s3_field, :synced_to_fog_field,
+                    :synced_to_yandex_field, :yandex_bucket_name,
+                    :yandex_credentials
 
         def setup(*)
           super
@@ -49,7 +51,10 @@ module Paperclip
           @filesystem_path_template = options[:filesystem_path]
 
           @s3_credentials = Delayeds3.parse_credentials(options[:s3_credentials])
+          @yandex_credentials = Delayeds3.parse_credentials(options[:yandex_credentials])
+
           @s3_bucket = options[:bucket] || @s3_credentials[:bucket]
+          @yandex_bucket_name = options[:yandex_bucket]
 
           @fog_provider = options[:fog_provider]
           @fog_directory = options[:fog_directory]
@@ -57,6 +62,7 @@ module Paperclip
 
           @synced_to_s3_field ||= :"#{attachment_name}_synced_to_s3"
           @synced_to_fog_field ||= :"#{attachment_name}_synced_to_fog"
+          @synced_to_yandex_field ||= :"#{attachment_name}_synced_to_yandex"
         end
 
         def fog_storage
@@ -72,9 +78,19 @@ module Paperclip
             s3_resource.bucket(s3_bucket)
           end
         end
+
+        def yandex_bucket
+          @yandex_bucket ||= begin
+            params = yandex_credentials.reject { |_k, v| v.blank? }
+            params[:region] ||= 'us-east-1'
+            s3_client = Aws::S3::Client.new(params)
+            s3_resource = Aws::S3::Resource.new(client: s3_client)
+            s3_resource.bucket(yandex_bucket_name)
+          end
+        end
       end
 
-      delegate :synced_to_s3_field, :synced_to_fog_field, to: :class
+      delegate :synced_to_s3_field, :synced_to_fog_field, :synced_to_yandex_field, to: :class
 
       def initialize(*)
         super
@@ -123,6 +139,8 @@ module Paperclip
           File.exist?(filesystem_path(style))
         when :s3
           self.class.aws_bucket.object(s3_path(style)).exists?
+        when :yandex
+          self.class.yandex_bucket.object(s3_path(style)).exists?
         when :fog
           begin
             self.class.fog_storage.head_object(self.class.fog_directory, s3_path(style))
@@ -169,6 +187,26 @@ module Paperclip
         end
       end
 
+      def write_to_yandex
+        return true if instance_read(:synced_to_yandex)
+        paths = filesystem_paths
+        if paths.length < styles.length || paths.empty? # To make monitoring easier
+          raise "Local files not found for #{instance.class.name}:#{instance.id}"
+        end
+        paths.each do |style, file|
+          log("saving to yandex #{file}")
+            s3_object = self.class.yandex_bucket.object(s3_path(style))
+            s3_object.upload_file(file,
+                                  cache_control: "max-age=#{10.year.to_i}",
+                                  content_type: instance_read(:content_type),
+                                  expires: 10.year.from_now.httpdate,
+                                  acl: 'public-read')
+        end
+        if instance.class.unscoped.where(id: instance.id).update_all(synced_to_yandex_field => true) == 1
+          instance.touch
+        end
+      end
+
       def write_to_fog
         return unless instance.respond_to? synced_to_fog_field
         return true if instance_read(:synced_to_fog)
@@ -210,12 +248,13 @@ module Paperclip
         end
 
         unless delay_processing? && dirty?
-          instance.update_column(synced_to_s3_field, false) if instance_read(:synced_to_s3)
-          if instance.respond_to?(synced_to_fog_field) && instance_read(:synced_to_fog)
-            instance.update_column(synced_to_fog_field, false)
+          %i[s3 fog yandex].each do |storage|
+            storage_field = send("synced_to_#{storage}_field")
+            if instance.respond_to?(storage_field) && instance_read("synced_to_#{storage}")
+              instance.update_column(storage_field, false)
+            end
+            queued_jobs.push -> { DelayedUpload.upload_later(self, storage) }
           end
-          queued_jobs.push -> { DelayedUpload.upload_later(self, :s3) }
-          queued_jobs.push -> { DelayedUpload.upload_later(self, :fog) }
         end
         queued_for_write.clear
       end
@@ -263,10 +302,11 @@ module Paperclip
         case store_id.to_s
         when 's3' then write_to_s3
         when 'fog' then write_to_fog
+        when 'yandex' then write_to_yandex
         else raise 'Unknown store id'
         end
         instance.reload
-        delete_local_files! if instance_read(:synced_to_fog) && instance_read(:synced_to_s3)
+        delete_local_files! if instance_read(:synced_to_fog) && instance_read(:synced_to_s3) && instance_read(:synced_to_yandex)
       end
 
       private
