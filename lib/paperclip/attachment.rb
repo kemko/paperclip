@@ -114,11 +114,18 @@ module Paperclip
         close_uploaded_file = uploaded_file.respond_to?(:close)
       end
 
-      if image_content_type?(uploaded_file) && !valid_image_resolution?(uploaded_file)
-        errors[:base] = :too_large_resolution
-        @validated = true # Skip other validations to prevent unnecessary messages
-        return
+      if image_content_type?(uploaded_file)
+        # FastImage don`t rewind file if it was read before.
+        uploaded_file.rewind if uploaded_file.respond_to?(:rewind)
+        sizes = FastImage.size(uploaded_file)
+
+        unless valid_image_resolution?(sizes)
+          errors[:base] = :too_large_resolution
+          @validated = true # Skip other validations to prevent unnecessary messages
+          return
+        end
       end
+
       return unless valid_assignment?(uploaded_file)
 
       uploaded_file.binmode if uploaded_file.respond_to? :binmode
@@ -136,6 +143,10 @@ module Paperclip
       instance_write(:content_type,    uploaded_file.content_type.to_s.strip)
       instance_write(:file_size,       uploaded_file.size.to_i)
       instance_write(:updated_at,      Time.now)
+      if sizes
+        instance_write(:width, sizes[0])
+        instance_write(:height, sizes[1])
+      end
 
       @dirty = true
 
@@ -154,10 +165,7 @@ module Paperclip
       file.respond_to?(:content_type) && file.content_type.try(:include?, 'image')
     end
 
-    def valid_image_resolution? file
-      # FastImage don`t rewind file if it readed before.
-      file.rewind if file.respond_to?(:rewind)
-      sizes = FastImage.size(file)
+    def valid_image_resolution?(sizes)
       !sizes || (sizes[0] <= MAX_IMAGE_RESOLUTION && sizes[1] <= MAX_IMAGE_RESOLUTION)
     end
 
