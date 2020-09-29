@@ -143,7 +143,7 @@ module Paperclip
       instance_write(:content_type,    uploaded_file.content_type.to_s.strip)
       instance_write(:file_size,       uploaded_file.size.to_i)
       instance_write(:updated_at,      Time.now)
-      if sizes
+      if sizes && sizes[0] && sizes[1]
         instance_write(:width, sizes[0])
         instance_write(:height, sizes[1])
       end
@@ -166,7 +166,9 @@ module Paperclip
     end
 
     def valid_image_resolution?(sizes)
-      !sizes || (sizes[0] <= MAX_IMAGE_RESOLUTION && sizes[1] <= MAX_IMAGE_RESOLUTION)
+      return true unless sizes && sizes[0] && sizes[1]
+
+      sizes[0] <= MAX_IMAGE_RESOLUTION && sizes[1] <= MAX_IMAGE_RESOLUTION
     end
 
     # Returns the public URL of the attachment, with a given style. Note that
