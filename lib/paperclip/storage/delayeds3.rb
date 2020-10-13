@@ -98,13 +98,13 @@ module Paperclip
       end
 
       def storage_url(style = default_style)
-        template = instance_read(:synced_to_s3) ? self.class.s3_url_template : self.class.filesystem_url_template
+        template = instance_read(:synced_to_yandex) ? self.class.s3_url_template : self.class.filesystem_url_template
         interpolate(template, style)
       end
 
       def path(style = default_style)
         return if original_filename.nil?
-        path = instance_read(:synced_to_s3) ? self.class.s3_path_template : self.class.filesystem_path_template
+        path = instance_read(:synced_to_yandex) ? self.class.s3_path_template : self.class.filesystem_path_template
         interpolate(path, style)
       end
 
@@ -123,7 +123,7 @@ module Paperclip
       end
 
       def download_file(style = default_style)
-        return unless instance_read(:synced_to_s3)
+        return unless instance_read(:synced_to_yandex)
         uri = URI(URI.encode(url(style)))
         response = Net::HTTP.get_response(uri)
         create_tempfile(response.body) if response.is_a?(Net::HTTPOK)
@@ -132,7 +132,7 @@ module Paperclip
       # Checks if attached file exists. When store_id is not given
       # it uses fast check and does not perform API request for synced files
       def exists?(style = default_style, store_id = nil)
-        return true if !store_id && instance_read(:synced_to_s3)
+        return true if !store_id && instance_read(:synced_to_yandex)
         store_id ||= :cache
         case store_id
         when :cache
@@ -282,7 +282,7 @@ module Paperclip
       def delete_styles_later(styles)
         # если мы картинку заливали в облака, значит мы скорее всего ее уже удалили
         # и можно не нагружать хранилище проверками
-        return if instance_read(:synced_to_fog) && instance_read(:synced_to_s3)
+        return if instance_read(:synced_to_fog) && instance_read(:synced_to_yandex)
         filenames = filesystem_paths(styles).values
         -> { delete_local_files!(filenames) }
       end
@@ -306,7 +306,7 @@ module Paperclip
         else raise 'Unknown store id'
         end
         instance.reload
-        delete_local_files! if instance_read(:synced_to_fog) && instance_read(:synced_to_s3) && instance_read(:synced_to_yandex)
+        delete_local_files! if instance_read(:synced_to_fog) && instance_read(:synced_to_yandex)
       end
 
       private
