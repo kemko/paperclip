@@ -98,14 +98,12 @@ module Paperclip
       end
 
       def storage_url(style = default_style)
-        template = instance_read(:synced_to_yandex) ? self.class.s3_url_template : self.class.filesystem_url_template
-        interpolate(template, style)
+        interpolate(self.class.s3_url_template, style)
       end
 
       def path(style = default_style)
         return if original_filename.nil?
-        path = instance_read(:synced_to_yandex) ? self.class.s3_path_template : self.class.filesystem_path_template
-        interpolate(path, style)
+        interpolate(self.class.s3_path_template, style)
       end
 
       def filesystem_path(style = default_style)
