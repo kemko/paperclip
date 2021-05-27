@@ -3,6 +3,7 @@ module Paperclip
   class Thumbnail < Processor
 
     attr_accessor :current_geometry, :target_geometry, :format, :whiny, :convert_options
+    attr_accessor :source_file_options, :auto_orient
 
     # Creates a Thumbnail object set to work on the +file+ given. It
     # will attempt to transform the image into one defined by +target_geometry+
@@ -18,8 +19,13 @@ module Paperclip
       @target_geometry  = Geometry.parse geometry
       @current_geometry = Geometry.from_file @file
       @convert_options  = options[:convert_options]
+      @source_file_options = options[:source_file_options]
       @whiny            = options[:whiny].nil? ? true : options[:whiny]
       @format           = options[:format]
+      @auto_orient         = options[:auto_orient].nil? ? true : options[:auto_orient]
+      if @auto_orient && @current_geometry.respond_to?(:auto_orient)
+        @current_geometry.auto_orient
+      end
 
       @current_format   = File.extname(@file.path)
       @basename         = File.basename(@file.path, @current_format)
@@ -44,6 +50,7 @@ module Paperclip
       dst.binmode
 
       command = <<-end_command
+        #{ source_file_options }
         "#{ File.expand_path(src.path) }[0]"
         #{ transformation_command }
         #{ gamma_correction_if_needed }
@@ -63,7 +70,9 @@ module Paperclip
     # into the thumbnail.
     def transformation_command
       scale, crop = @current_geometry.transformation_to(@target_geometry, crop?)
-      trans = "-resize \"#{scale}\""
+      trans = String.new
+      trans << "-auto-orient " if auto_orient
+      trans << "-resize \"#{scale}\"" unless scale.nil? || scale.empty?
       trans << " -crop \"#{crop}\" +repage" if crop
       trans << " #{convert_options}" if convert_options?
       trans
