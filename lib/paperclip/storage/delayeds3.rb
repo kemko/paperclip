@@ -82,7 +82,7 @@ module Paperclip
         def yandex_bucket
           @yandex_bucket ||= begin
             params = yandex_credentials.reject { |_k, v| v.blank? }
-            params[:region] ||= 'us-east-1'
+            params[:region] ||= 'ru-central1'
             s3_client = Aws::S3::Client.new(params)
             s3_resource = Aws::S3::Resource.new(client: s3_client)
             s3_resource.bucket(yandex_bucket_name)
