@@ -40,7 +40,11 @@ module Paperclip
                     :fog_provider, :fog_credentials, :fog_directory,
                     :synced_to_s3_field, :synced_to_fog_field,
                     :synced_to_yandex_field, :yandex_bucket_name,
-                    :yandex_credentials
+                    :yandex_credentials,
+                    :synced_to_sbercloud_field,
+                    :sbercloud_bucket_name,
+                    :sbercloud_credentials
+
 
         def setup(*)
           super
@@ -52,9 +56,11 @@ module Paperclip
 
           @s3_credentials = Delayeds3.parse_credentials(options[:s3_credentials])
           @yandex_credentials = Delayeds3.parse_credentials(options[:yandex_credentials])
+          @sbercloud_credentials = Delayeds3.parse_credentials(options[:sbercloud_credentials])
 
           @s3_bucket = options[:bucket] || @s3_credentials[:bucket]
           @yandex_bucket_name = options[:yandex_bucket]
+          @sbercloud_bucket_name = options[:sbercloud_bucket]
 
           @fog_provider = options[:fog_provider]
           @fog_directory = options[:fog_directory]
@@ -63,6 +69,7 @@ module Paperclip
           @synced_to_s3_field ||= :"#{attachment_name}_synced_to_s3"
           @synced_to_fog_field ||= :"#{attachment_name}_synced_to_fog"
           @synced_to_yandex_field ||= :"#{attachment_name}_synced_to_yandex"
+          @synced_to_sbercloud_field ||= :"#{attachment_name}_synced_to_sbercloud"
         end
 
         def fog_storage
@@ -88,9 +95,19 @@ module Paperclip
             s3_resource.bucket(yandex_bucket_name)
           end
         end
+
+        def sbercloud_bucket
+          @sbercloud_bucket ||= begin
+            params = sbercloud_credentials.reject { |_k, v| v.blank? }
+            params[:region] ||= 'ru-moscow'
+            s3_client = Aws::S3::Client.new(params)
+            s3_resource = Aws::S3::Resource.new(client: s3_client)
+            s3_resource.bucket(sbercloud_bucket_name)
+          end
+        end
       end
 
-      delegate :synced_to_s3_field, :synced_to_fog_field, :synced_to_yandex_field, to: :class
+      delegate :synced_to_s3_field, :synced_to_fog_field, :synced_to_yandex_field, :synced_to_sbercloud_field to: :class
 
       def initialize(*)
         super
@@ -139,6 +156,8 @@ module Paperclip
           self.class.aws_bucket.object(s3_path(style)).exists?
         when :yandex
           self.class.yandex_bucket.object(s3_path(style)).exists?
+        when :sbercloud
+          self.class.sbercloud_bucket.object(s3_path(style)).exists?
         when :fog
           begin
             self.class.fog_storage.head_object(self.class.fog_directory, s3_path(style))
@@ -201,6 +220,26 @@ module Paperclip
                                   acl: 'public-read')
         end
         if instance.class.unscoped.where(id: instance.id).update_all(synced_to_yandex_field => true) == 1
+          instance.touch
+        end
+      end
+
+      def write_to_sbercloud
+        return true if instance_read(:synced_to_sbercloud)
+        paths = filesystem_paths
+        if paths.length < styles.length || paths.empty? # To make monitoring easier
+          raise "Local files not found for #{instance.class.name}:#{instance.id}"
+        end
+        paths.each do |style, file|
+          log("saving to sbercloud #{file}")
+            s3_object = self.class.sbercloud_bucket.object(s3_path(style))
+            s3_object.upload_file(file,
+                                  cache_control: "max-age=#{10.year.to_i}",
+                                  content_type: instance_read(:content_type),
+                                  expires: 10.year.from_now.httpdate,
+                                  acl: 'public-read')
+        end
+        if instance.class.unscoped.where(id: instance.id).update_all(synced_to_sbercloud_field => true) == 1
           instance.touch
         end
       end
@@ -280,7 +319,7 @@ module Paperclip
       def delete_styles_later(styles)
         # если мы картинку заливали в облака, значит мы скорее всего ее уже удалили
         # и можно не нагружать хранилище проверками
-        return if instance_read(:synced_to_fog) && instance_read(:synced_to_yandex)
+        return if instance_read(:synced_to_fog) && instance_read(:synced_to_yandex) && instance_read(:synced_to_sbercloud)
         filenames = filesystem_paths(styles).values
         -> { delete_local_files!(filenames) }
       end
@@ -301,10 +340,12 @@ module Paperclip
         when 's3' then write_to_s3
         when 'fog' then write_to_fog
         when 'yandex' then write_to_yandex
+        when 'sbercloud' then write_to_sbercloud
         else raise 'Unknown store id'
         end
         instance.reload
         delete_local_files! if instance_read(:synced_to_fog) && instance_read(:synced_to_yandex)
+                              && instance_read(:synced_to_sbercloud)
       end
 
       private
