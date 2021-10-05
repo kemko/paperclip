@@ -107,7 +107,7 @@ module Paperclip
         end
       end
 
-      delegate :synced_to_s3_field, :synced_to_fog_field, :synced_to_yandex_field, :synced_to_sbercloud_field to: :class
+      delegate :synced_to_s3_field, :synced_to_fog_field, :synced_to_yandex_field, :synced_to_sbercloud_field, to: :class
 
       def initialize(*)
         super
@@ -344,8 +344,7 @@ module Paperclip
         else raise 'Unknown store id'
         end
         instance.reload
-        delete_local_files! if instance_read(:synced_to_fog) && instance_read(:synced_to_yandex)
-                              && instance_read(:synced_to_sbercloud)
+        delete_local_files! if instance_read(:synced_to_fog) && instance_read(:synced_to_yandex) && instance_read(:synced_to_sbercloud)
       end
 
       private
