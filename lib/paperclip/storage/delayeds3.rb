@@ -285,7 +285,7 @@ module Paperclip
         end
 
         unless delay_processing? && dirty?
-          %i[fog yandex].each do |storage|
+          %i[fog yandex sbercloud].each do |storage|
             storage_field = send("synced_to_#{storage}_field")
             if instance.respond_to?(storage_field) && instance_read("synced_to_#{storage}")
               instance.update_column(storage_field, false)
