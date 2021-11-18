@@ -12,8 +12,7 @@ module Paperclip
     end
 
     def real_content_type
-      out = Paperclip.run "file", "--mime-type #{@file.path.shellescape}"
-      out.split(/:\s+/)[1].gsub("\n", "")
+      Paperclip::Upfile.content_type_from_file(@file.path)
     end
 
     def optimize(file)

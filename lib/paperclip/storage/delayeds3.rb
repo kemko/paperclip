@@ -184,6 +184,10 @@ module Paperclip
         h
       end
 
+      def file_content_type(path)
+        Paperclip::Upfile.content_type_from_file path
+      end
+
       def write_to_s3
         return true if instance_read(:synced_to_s3)
         paths = filesystem_paths
@@ -195,7 +199,7 @@ module Paperclip
             s3_object = self.class.aws_bucket.object(s3_path(style))
             s3_object.upload_file(file,
                                   cache_control: "max-age=#{10.year.to_i}",
-                                  content_type: instance_read(:content_type),
+                                  content_type: file_content_type(file),
                                   expires: 10.year.from_now.httpdate,
                                   acl: 'public-read')
         end
@@ -215,7 +219,7 @@ module Paperclip
             s3_object = self.class.yandex_bucket.object(s3_path(style))
             s3_object.upload_file(file,
                                   cache_control: "max-age=#{10.year.to_i}",
-                                  content_type: instance_read(:content_type),
+                                  content_type: file_content_type(file),
                                   expires: 10.year.from_now.httpdate,
                                   acl: 'public-read')
         end
@@ -235,7 +239,7 @@ module Paperclip
             s3_object = self.class.sbercloud_bucket.object(s3_path(style))
             s3_object.upload_file(file,
                                   cache_control: "max-age=#{10.year.to_i}",
-                                  content_type: instance_read(:content_type),
+                                  content_type: file_content_type(file),
                                   expires: 10.year.from_now.httpdate,
                                   acl: 'public-read')
         end
@@ -255,7 +259,7 @@ module Paperclip
           path = s3_path(style)
           log "Saving to Fog with key #{path}"
           options = {
-            "Content-Type" => instance_read(:content_type),
+            "Content-Type" => file_content_type(file),
             "Cache-Control" => "max-age=#{10.year.to_i}",
             "x-goog-acl" => "public-read"
           }
