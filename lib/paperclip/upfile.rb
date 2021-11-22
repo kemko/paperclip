@@ -5,10 +5,11 @@ module Paperclip
   module Upfile
     # Infer the MIME-type of the file from the extension.
     def content_type
-      Paperclip::Upfile.content_type self.path
+      Paperclip::Upfile.content_type_from_ext self.path
     end
 
-    def self.content_type path
+    # TODO: Переписать через MIME::Types
+    def self.content_type_from_ext(path)
       type = (path.match(/\.(\w+)$/)[1] rescue "octet-stream").downcase
       case type
       when %r"jpe?g"                 then "image/jpeg"
@@ -20,6 +21,13 @@ module Paperclip
       when "liquid"                  then "text/x-liquid"
       else "application/x-#{type}"
       end
+    end
+
+    def self.content_type_from_file(path)
+      Paperclip
+        .run("file", "--mime-type #{path.shellescape}")
+        .split(/:\s+/)[1]
+        .gsub("\n", "")
     end
 
     attr_writer :original_filename
@@ -45,7 +53,7 @@ if defined? StringIO
     end
 
     def content_type
-      @content_type ||= Paperclip::Upfile.content_type original_filename
+      @content_type ||= Paperclip::Upfile.content_type_from_ext original_filename
     end
   end
 end
