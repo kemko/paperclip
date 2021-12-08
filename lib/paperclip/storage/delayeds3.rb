@@ -196,12 +196,13 @@ module Paperclip
         end
         paths.each do |style, file|
           log("saving to s3 #{file}")
-            s3_object = self.class.aws_bucket.object(s3_path(style))
-            s3_object.upload_file(file,
-                                  cache_control: "max-age=#{10.year.to_i}",
-                                  content_type: file_content_type(file),
-                                  expires: 10.year.from_now.httpdate,
-                                  acl: 'public-read')
+          content_type = style == 'original' ? instance_read(:content_type) : file_content_type(file)
+          s3_object = self.class.aws_bucket.object(s3_path(style))
+          s3_object.upload_file(file,
+                                cache_control: "max-age=#{10.year.to_i}",
+                                content_type: content_type,
+                                expires: 10.year.from_now.httpdate,
+                                acl: 'public-read')
         end
         if instance.class.unscoped.where(id: instance.id).update_all(synced_to_s3_field => true) == 1
           instance.touch
@@ -216,12 +217,13 @@ module Paperclip
         end
         paths.each do |style, file|
           log("saving to yandex #{file}")
-            s3_object = self.class.yandex_bucket.object(s3_path(style))
-            s3_object.upload_file(file,
-                                  cache_control: "max-age=#{10.year.to_i}",
-                                  content_type: file_content_type(file),
-                                  expires: 10.year.from_now.httpdate,
-                                  acl: 'public-read')
+          content_type = style == 'original' ? instance_read(:content_type) : file_content_type(file)
+          s3_object = self.class.yandex_bucket.object(s3_path(style))
+          s3_object.upload_file(file,
+                                cache_control: "max-age=#{10.year.to_i}",
+                                content_type: content_type,
+                                expires: 10.year.from_now.httpdate,
+                                acl: 'public-read')
         end
         if instance.class.unscoped.where(id: instance.id).update_all(synced_to_yandex_field => true) == 1
           instance.touch
@@ -236,12 +238,13 @@ module Paperclip
         end
         paths.each do |style, file|
           log("saving to sbercloud #{file}")
-            s3_object = self.class.sbercloud_bucket.object(s3_path(style))
-            s3_object.upload_file(file,
-                                  cache_control: "max-age=#{10.year.to_i}",
-                                  content_type: file_content_type(file),
-                                  expires: 10.year.from_now.httpdate,
-                                  acl: 'public-read')
+          content_type = style == 'original' ? instance_read(:content_type) : file_content_type(file)
+          s3_object = self.class.sbercloud_bucket.object(s3_path(style))
+          s3_object.upload_file(file,
+                                cache_control: "max-age=#{10.year.to_i}",
+                                content_type: content_type,
+                                expires: 10.year.from_now.httpdate,
+                                acl: 'public-read')
         end
         if instance.class.unscoped.where(id: instance.id).update_all(synced_to_sbercloud_field => true) == 1
           instance.touch
