@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'test_helper'
 
 class IntegrationTest < Test::Unit::TestCase
@@ -32,23 +34,6 @@ class IntegrationTest < Test::Unit::TestCase
 
     should "create its thumbnails properly" do
       assert_match /\b50x50\b/, `identify "#{@dummy.avatar.path(:thumb)}"`
-    end
-
-    context "redefining its attachment styles" do
-      setup do
-        Dummy.class_eval do
-          has_attached_file :avatar, :styles => { :thumb => "150x25#" }
-          has_attached_file :avatar, :styles => { :thumb => "150x25#", :dynamic => lambda { |a| '50x50#' } }
-        end
-        @d2 = Dummy.find(@dummy.id)
-        @d2.avatar.reprocess!
-        @d2.save
-      end
-
-      should "create its thumbnails properly" do
-        assert_match /\b150x25\b/, `identify "#{@dummy.avatar.path(:thumb)}"`
-        assert_match /\b50x50\b/, `identify "#{@dummy.avatar.path(:dynamic)}"`
-      end
     end
   end
 
@@ -95,17 +80,12 @@ class IntegrationTest < Test::Unit::TestCase
 
       context "and deleted" do
         setup do
-          @dummy.avatar.clear
+          @dummy.avatar = nil
           @dummy.save
         end
 
         should "not have a large file in the right place anymore" do
           assert ! File.exist?(@saved_path)
-        end
-
-        should "not have its next two parent directories" do
-          assert ! File.exist?(File.dirname(@saved_path))
-          assert ! File.exist?(File.dirname(File.dirname(@saved_path)))
         end
 
         before_should "not die if an unexpected SystemCallError happens" do
@@ -155,7 +135,7 @@ class IntegrationTest < Test::Unit::TestCase
                     :default_style => :medium,
                     :url => "/:attachment/:class/:style/:id/:basename.:extension",
                     :path => ":rails_root/tmp/:attachment/:class/:style/:id/:basename.:extension"
-      @dummy     = Dummy.new
+      @dummy = Dummy.new
     end
 
     should "have its definition return nil when asked about convert_options" do
@@ -164,17 +144,17 @@ class IntegrationTest < Test::Unit::TestCase
 
     context "redefined to have convert_options setting" do
       setup do
-        rebuild_model :styles => { :large => "300x300>",
-                                   :medium => "100x100",
-                                   :thumb => ["32x32#", :gif] },
-                      :convert_options => "-strip -depth 8",
-                      :default_style => :medium,
-                      :url => "/:attachment/:class/:style/:id/:basename.:extension",
-                      :path => ":rails_root/tmp/:attachment/:class/:style/:id/:basename.:extension"
+        rebuild_model styles: { large: "300x300>",
+                                medium: "100x100",
+                                thumb: ["32x32#", :gif] },
+                      convert_options: { all: "-strip -depth 8" },
+                      default_style: :medium,
+                      url: "/:attachment/:class/:style/:id/:basename.:extension",
+                      path: ":rails_root/tmp/:attachment/:class/:style/:id/:basename.:extension"
       end
 
       should "have its definition return convert_options value when asked about convert_options" do
-        assert_equal "-strip -depth 8", Dummy.attachment_definitions[:avatar][:convert_options]
+        assert_equal({ all: "-strip -depth 8" }.to_s, Dummy.attachment_definitions[:avatar][:convert_options].to_s)
       end
     end
   end
@@ -224,17 +204,13 @@ class IntegrationTest < Test::Unit::TestCase
         assert File.exist?(p)
       end
 
-      @dummy.avatar.clear
-      assert_nil @dummy.avatar_file_name
+      @dummy.avatar = nil
       assert @dummy.valid?
       assert @dummy.save
 
       saved_paths.each do |p|
-        assert ! File.exist?(p)
+        assert !File.exist?(p)
       end
-
-      @d2 = Dummy.find(@dummy.id)
-      assert_nil @d2.avatar_file_name
     end
 
     should "work exactly the same when new as when reloaded" do
@@ -247,7 +223,7 @@ class IntegrationTest < Test::Unit::TestCase
 
       saved_paths = [:thumb, :medium, :large, :original].collect{|s| @dummy.avatar.path(s) }
 
-      @d2.avatar.clear
+      @d2.avatar = nil
       assert @d2.save
 
       saved_paths.each do |p|
@@ -278,8 +254,7 @@ class IntegrationTest < Test::Unit::TestCase
     should "be able to reload without saving and not have the file disappear" do
       @dummy.avatar = @file
       assert @dummy.save
-      @dummy.avatar.clear
-      assert_nil @dummy.avatar_file_name
+      @dummy.avatar = nil
       @dummy.reload
       assert_equal "5k.png", @dummy.avatar_file_name
     end
@@ -302,7 +277,6 @@ class IntegrationTest < Test::Unit::TestCase
                      `identify -format "%wx%h" "#{@dummy2.avatar.path(:original)}"`
       end
     end
-
   end
 
   context "A model with an attachments association and a Paperclip attachment" do
@@ -398,7 +372,7 @@ class IntegrationTest < Test::Unit::TestCase
           assert key.exists?
         end
 
-        @dummy.avatar.clear
+        @dummy.avatar = nil
         assert_nil @dummy.avatar_file_name
         assert @dummy.valid?
         assert @dummy.save
@@ -421,7 +395,7 @@ class IntegrationTest < Test::Unit::TestCase
 
         saved_keys = [:thumb, :medium, :large, :original].collect{|s| @dummy.avatar.to_file(s) }
 
-        @d2.avatar.clear
+        @d2.avatar = nil
         assert @d2.save
 
         saved_keys.each do |key|
