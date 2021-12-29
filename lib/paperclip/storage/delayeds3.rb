@@ -297,7 +297,8 @@ module Paperclip
             if instance.respond_to?(storage_field) && instance_read("synced_to_#{storage}")
               instance.update_column(storage_field, false)
             end
-            queued_jobs.push -> { DelayedUpload.upload_later(self, storage) }
+            # кажется, без задержки картинки не успевают расползтись по nfs
+            queued_jobs.push -> { DelayedUpload.upload_later(self, storage, 1.second) }
           end
         end
         queued_for_write.clear
