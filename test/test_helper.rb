@@ -57,10 +57,16 @@ def rebuild_model options = {}
   rebuild_class options
 end
 
-def rebuild_class options = {}
+def rebuild_class(options = {})
   ActiveRecord::Base.send(:include, Paperclip)
-  Object.send(:remove_const, "Dummy") rescue nil
+  begin
+    Object.send(:remove_const, "Dummy")
+  rescue StandardError
+    nil
+  end
+
   Object.const_set("Dummy", Class.new(ActiveRecord::Base))
+  Dummy.reset_column_information
   Dummy.class_eval do
     include Paperclip
     has_attached_file :avatar, options
@@ -68,6 +74,8 @@ def rebuild_class options = {}
 end
 
 class FakeModel
+  include Paperclip
+
   attr_accessor :avatar_file_name,
                 :avatar_file_size,
                 :avatar_last_updated,
