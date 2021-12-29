@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'sidekiq'
 
 module Paperclip
@@ -8,14 +10,16 @@ module Paperclip
       sidekiq_options queue: :paperclip
 
       class << self
-        def upload_later(attachment, store_id)
+        def upload_later(attachment, store_id, delay = nil)
           instance = attachment.instance
-          perform_async(
+          args = [
             instance.class.name,
             instance.id,
             attachment.class.attachment_name,
             store_id
-          )
+          ]
+
+          delay.present? ? perform_in(delay, *args) : perform_async(*args)
         end
       end
 
