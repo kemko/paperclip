@@ -23,6 +23,9 @@ require File.join(ROOT, 'lib', 'paperclip.rb')
 
 require 'shoulda_macros/paperclip'
 
+require 'pry'
+require 'pry-byebug'
+
 FIXTURES_DIR = File.join(File.dirname(__FILE__), "fixtures")
 config = YAML::load(IO.read(File.dirname(__FILE__) + '/database.yml'))
 ActiveRecord::Base.logger = Logger.new(File.dirname(__FILE__) + "/debug.log")
