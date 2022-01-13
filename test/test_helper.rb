@@ -1,8 +1,11 @@
+# frozen_string_literal: true
+
 require 'rubygems'
 require 'test/unit'
 require 'shoulda'
 require 'mocha/test_unit'
 require 'pry'
+require 'pry-byebug'
 require 'tempfile'
 require 'sqlite3'
 
@@ -23,8 +26,6 @@ require File.join(ROOT, 'lib', 'paperclip.rb')
 
 require 'shoulda_macros/paperclip'
 
-require 'pry'
-require 'pry-byebug'
 
 FIXTURES_DIR = File.join(File.dirname(__FILE__), "fixtures")
 config = YAML::load(IO.read(File.dirname(__FILE__) + '/database.yml'))
