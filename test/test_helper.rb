@@ -42,7 +42,7 @@ def reset_class class_name
 end
 
 def reset_table table_name, &block
-  block ||= lambda{ true }
+  block ||= ->(_) { true }
   ActiveRecord::Base.connection.create_table :dummies, {:force => true}, &block
 end
 
