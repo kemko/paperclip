@@ -4,7 +4,7 @@ source "https://rubygems.org"
 
 gem "appraisal"
 gem "fastimage"
-gem "sqlite3"
+gem "pg", "~> 1.1.4"
 gem "aws-sdk-s3"
 gem "fog-local"
 gem "delayed_paperclip", git: "https://github.com/insales/delayed_paperclip.git"

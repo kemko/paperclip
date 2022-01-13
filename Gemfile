@@ -8,7 +8,7 @@ gemspec
 gem 'appraisal'
 
 gem 'fastimage'
-gem 'sqlite3'
+gem 'pg', '~> 1.1.4'
 
 gem 'aws-sdk-s3'
 gem 'fog-local'

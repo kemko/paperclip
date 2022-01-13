@@ -7,7 +7,7 @@ require 'mocha/test_unit'
 require 'pry'
 require 'pry-byebug'
 require 'tempfile'
-require 'sqlite3'
+require 'pg'
 
 require 'active_record'
 require 'active_support'
