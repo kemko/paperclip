@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 
 Gem::Specification.new do |s|
   s.name = %q{paperclip}
@@ -17,6 +18,6 @@ Gem::Specification.new do |s|
   s.rubygems_version = %q{1.3.1}
   s.summary = %q{File attachments as attributes for ActiveRecord}
 
-  s.add_dependency 'activesupport'
+  s.add_dependency 'activesupport', '< 7.1'
   s.add_dependency 'fastimage'
 end
