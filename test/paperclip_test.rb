@@ -149,7 +149,7 @@ class PaperclipTest < Test::Unit::TestCase
     def self.should_validate validation, options, valid_file, invalid_file
       context "with #{validation} validation and #{options.inspect} options" do
         setup do
-          Dummy.send(:"validates_attachment_#{validation}", :avatar, options)
+          Dummy.send(:"validates_attachment_#{validation}", :avatar, **options)
           @dummy = Dummy.new
         end
         context "and assigning nil" do

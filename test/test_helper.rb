@@ -43,7 +43,7 @@ end
 
 def reset_table table_name, &block
   block ||= ->(_) { true }
-  ActiveRecord::Base.connection.create_table :dummies, {:force => true}, &block
+  ActiveRecord::Base.connection.create_table :dummies, force: true, &block
 end
 
 def modify_table table_name, &block
@@ -51,7 +51,7 @@ def modify_table table_name, &block
 end
 
 def rebuild_model options = {}
-  ActiveRecord::Base.connection.create_table :dummies, :force => true do |table|
+  ActiveRecord::Base.connection.create_table :dummies, force: true do |table|
     table.column :other, :string
     table.column :avatar_file_name, :string
     table.column :avatar_content_type, :string
