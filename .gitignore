@@ -3,3 +3,4 @@ Gemfile.lock
 gemfiles/*.lock
 gemfiles/.bundle/
 tmp/
+.rubocop-*
