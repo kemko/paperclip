@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'fastimage'
 
 require 'paperclip/styles_parser'
@@ -31,7 +33,7 @@ module Paperclip
     class << self
       # Every attachment definition creates separate class which stores configuration.
       # This class is instantiated later with model instance.
-      def build_class(name, options)
+      def build_class(name, options = {})
         options = default_options.merge(options)
         storage_name = options.fetch(:storage).to_s.downcase.camelize
         storage_module = Storage.const_get(storage_name, false)

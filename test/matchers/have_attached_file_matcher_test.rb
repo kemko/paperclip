@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'test_helper'
 
 class HaveAttachedFileMatcherTest < Test::Unit::TestCase
@@ -5,7 +7,7 @@ class HaveAttachedFileMatcherTest < Test::Unit::TestCase
     setup do
       @dummy_class = reset_class "Dummy"
       reset_table "dummies"
-      @matcher     = self.class.have_attached_file(:avatar)
+      @matcher = self.class.have_attached_file(:avatar)
     end
 
     should "reject a class with no attachment" do
@@ -13,7 +15,7 @@ class HaveAttachedFileMatcherTest < Test::Unit::TestCase
     end
 
     should "accept a class with an attachment" do
-      modify_table("dummies"){|d| d.string :avatar_file_name }
+      modify_table("dummies") { |d| d.string :avatar_file_name }
       @dummy_class.has_attached_file :avatar
       assert_accepts @matcher, @dummy_class
     end

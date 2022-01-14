@@ -1,35 +1,8 @@
+# frozen_string_literal: true
+
 require 'test_helper'
 
 class ThumbnailTest < Test::Unit::TestCase
-
-  context "A Paperclip Tempfile" do
-    setup do
-      @tempfile = Paperclip::Tempfile.new("file.jpg")
-    end
-
-    should "have its path contain a real extension" do
-      assert_equal ".jpg", File.extname(@tempfile.path)
-    end
-
-    should "be a real Tempfile" do
-      assert @tempfile.is_a?(::Tempfile)
-    end
-  end
-
-  context "Another Paperclip Tempfile" do
-    setup do
-      @tempfile = Paperclip::Tempfile.new("file")
-    end
-
-    should "not have an extension if not given one" do
-      assert_equal "", File.extname(@tempfile.path)
-    end
-
-    should "still be a real Tempfile" do
-      assert @tempfile.is_a?(::Tempfile)
-    end
-  end
-
   context "An image" do
     setup do
       @file = File.new(File.join(File.dirname(__FILE__), "fixtures", "5k.png"), 'rb')
@@ -91,8 +64,9 @@ class ThumbnailTest < Test::Unit::TestCase
       end
 
       should "send the right command to convert when sent #make" do
+        Paperclip::Thumbnail.any_instance.stubs(:gamma_correction_if_needed).returns("PNG\nPaletteAlpha")
         Paperclip.expects(:"`").with do |arg|
-          arg.match %r{convert\s+"#{File.expand_path(@thumb.file.path)}\[0\]"\s+-resize\s+\"x50\"\s+-crop\s+\"100x50\+114\+0\"\s+\+repage\s+".*?"}
+          arg.match? %r{convert\s+"#{File.expand_path(@thumb.file.path)}\[0\]"\s+-auto-orient\s+-resize\s+\"x50\"\s+-crop\s+\"100x50\+114\+0\"\s+\+repage\s+}
         end
         @thumb.make
       end
@@ -115,8 +89,9 @@ class ThumbnailTest < Test::Unit::TestCase
       end
 
       should "send the right command to convert when sent #make" do
+        Paperclip::Thumbnail.any_instance.stubs(:gamma_correction_if_needed).returns("PNG\nPaletteAlpha")
         Paperclip.expects(:"`").with do |arg|
-          arg.match %r{convert\s+"#{File.expand_path(@thumb.file.path)}\[0\]"\s+-resize\s+"x50"\s+-crop\s+"100x50\+114\+0"\s+\+repage\s+-strip\s+-depth\s+8\s+".*?"}
+          arg.match? %r{convert\s+"#{File.expand_path(@thumb.file.path)}\[0\]"\s+-auto-orient\s+-resize\s+"x50"\s+-crop\s+"100x50\+114\+0"\s+\+repage\s+-strip\s+-depth\s+8\s+}
         end
         @thumb.make
       end
@@ -138,39 +113,6 @@ class ThumbnailTest < Test::Unit::TestCase
             @thumb.make
           end
         end
-      end
-    end
-  end
-
-  context "A multipage PDF" do
-    setup do
-      @file = File.new(File.join(File.dirname(__FILE__), "fixtures", "twopage.pdf"), 'rb')
-    end
-
-    teardown { @file.close }
-
-    should "start with two pages with dimensions 612x792" do
-      cmd = %Q[identify -format "%wx%h" "#{@file.path}"]
-      assert_equal "612x792"*2, `#{cmd}`.chomp
-    end
-
-    context "being thumbnailed at 100x100 with cropping" do
-      setup do
-        @thumb = Paperclip::Thumbnail.new(@file, :geometry => "100x100#", :format => :png)
-      end
-
-      should "report its correct current and target geometries" do
-        assert_equal "100x100#", @thumb.target_geometry.to_s
-        assert_equal "612x792", @thumb.current_geometry.to_s
-      end
-
-      should "report its correct format" do
-        assert_equal :png, @thumb.format
-      end
-
-      should "create the thumbnail when sent #make" do
-        dst = @thumb.make
-        assert_match /100x100/, `identify "#{dst.path}"`
       end
     end
   end

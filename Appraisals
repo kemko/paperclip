@@ -1,8 +1,5 @@
-appraise 'rails_42' do
-  gem 'rails', '~> 4.2.0'
-  gem 'test_after_commit'
-end
+# frozen_string_literal: true
 
-appraise 'rails_5' do
-  gem 'rails', '~> 5.2.0'
+appraise 'rails_52' do
+  gem 'rails', '~> 5.2.6'
 end

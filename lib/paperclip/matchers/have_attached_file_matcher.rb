@@ -31,9 +31,9 @@ module Paperclip
 
         def responds?
           methods = @subject.instance_methods
-          methods.include?("#{@attachment_name}") &&
-            methods.include?("#{@attachment_name}=") &&
-            methods.include?("#{@attachment_name}?")
+          methods.include?(:"#{@attachment_name}") &&
+            methods.include?(:"#{@attachment_name}=") &&
+            methods.include?(:"#{@attachment_name}?")
         end
 
         def has_column?

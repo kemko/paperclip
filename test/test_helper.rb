@@ -1,10 +1,13 @@
+# frozen_string_literal: true
+
 require 'rubygems'
 require 'test/unit'
 require 'shoulda'
 require 'mocha/test_unit'
 require 'pry'
+require 'pry-byebug'
 require 'tempfile'
-require 'sqlite3'
+require 'pg'
 
 require 'active_record'
 require 'active_support'
@@ -23,6 +26,7 @@ require File.join(ROOT, 'lib', 'paperclip.rb')
 
 require 'shoulda_macros/paperclip'
 
+
 FIXTURES_DIR = File.join(File.dirname(__FILE__), "fixtures")
 config = YAML::load(IO.read(File.dirname(__FILE__) + '/database.yml'))
 ActiveRecord::Base.logger = Logger.new(File.dirname(__FILE__) + "/debug.log")
@@ -38,7 +42,7 @@ def reset_class class_name
 end
 
 def reset_table table_name, &block
-  block ||= lambda{ true }
+  block ||= ->(_) { true }
   ActiveRecord::Base.connection.create_table :dummies, {:force => true}, &block
 end
 
@@ -57,10 +61,16 @@ def rebuild_model options = {}
   rebuild_class options
 end
 
-def rebuild_class options = {}
+def rebuild_class(options = {})
   ActiveRecord::Base.send(:include, Paperclip)
-  Object.send(:remove_const, "Dummy") rescue nil
+  begin
+    Object.send(:remove_const, "Dummy")
+  rescue StandardError
+    nil
+  end
+
   Object.const_set("Dummy", Class.new(ActiveRecord::Base))
+  Dummy.reset_column_information
   Dummy.class_eval do
     include Paperclip
     has_attached_file :avatar, options
@@ -68,6 +78,8 @@ def rebuild_class options = {}
 end
 
 class FakeModel
+  include Paperclip
+
   attr_accessor :avatar_file_name,
                 :avatar_file_size,
                 :avatar_last_updated,
