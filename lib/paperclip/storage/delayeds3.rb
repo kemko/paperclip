@@ -318,7 +318,8 @@ module Paperclip
             FileUtils.rmdir(path)
             break if File.exist?(path) # Ruby 1.9.2 does not raise if the removal failed.
           end
-        rescue Errno::EEXIST, Errno::ENOTEMPTY, Errno::ENOENT, Errno::EINVAL, Errno::ENOTDIR, Errno::ESTALE => e
+        rescue Errno::EEXIST, Errno::EACCES, Errno::ENOTEMPTY,
+               Errno::ENOENT, Errno::EINVAL, Errno::ENOTDIR, Errno::ESTALE => _e
         rescue SystemCallError => e
           Rollbar.error(e, {path: path, initial_path: initial_path})
         end
