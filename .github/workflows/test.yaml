@@ -27,14 +27,15 @@ jobs:
 
     env:
       BUNDLE_GEMFILE: ${{ github.workspace }}/gemfiles/rails_${{ matrix.rails-version }}.gemfile
+      BUNDLE_WITHOUT: lint
 
     services:
       postgres:
         image: postgres:12-alpine
         env:
+          POSTGRES_DB: paperclip_test
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: ""
-          POSTGRES_DB: postgres
           POSTGRES_HOST_AUTH_METHOD: trust
         ports:
           - 5432:5432
@@ -46,16 +47,7 @@ jobs:
           ruby-version: ${{ matrix.ruby-version }}
           bundler-cache: true
 
-      - name: Create databases
-        env:
-          RAILS_ENV: test
-          PGHOST: localhost
-          PGUSER: postgres
-          PGPORT: 5432
-        run: sudo -u postgres createdb -h localhost -p 5432 -U postgres paperclip_test
-
       - name: Run tests
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          bundle exec appraisal rails_${{ matrix.rails-version }} rake test
+          echo Running with $BUNDLE_GEMFILE
+          bundle exec rake test
