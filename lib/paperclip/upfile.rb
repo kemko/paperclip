@@ -15,6 +15,7 @@ module Paperclip
       when %r"jpe?g"                 then "image/jpeg"
       when %r"tiff?"                 then "image/tiff"
       when %r"png", "gif", "bmp"     then "image/#{type}"
+      when "webp"                    then "image/webp"
       when "txt"                     then "text/plain"
       when %r"html?"                 then "text/html"
       when "csv", "xml", "css", "js" then "text/#{type}"
