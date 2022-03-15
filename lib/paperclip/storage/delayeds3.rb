@@ -292,7 +292,7 @@ module Paperclip
         end
 
         unless delay_processing? && dirty?
-          %i[fog yandex sbercloud].each do |storage|
+          %i[yandex sbercloud].each do |storage|
             storage_field = send("synced_to_#{storage}_field")
             if instance.respond_to?(storage_field) && instance_read("synced_to_#{storage}")
               instance.update_column(storage_field, false)
@@ -328,7 +328,7 @@ module Paperclip
       def delete_styles_later(styles)
         # если мы картинку заливали в облака, значит мы скорее всего ее уже удалили
         # и можно не нагружать хранилище проверками
-        return if instance_read(:synced_to_fog) && instance_read(:synced_to_yandex) && instance_read(:synced_to_sbercloud)
+        return if instance_read(:synced_to_yandex) && instance_read(:synced_to_sbercloud)
         filenames = filesystem_paths(styles).values
         -> { delete_local_files!(filenames) }
       end
@@ -353,7 +353,7 @@ module Paperclip
         else raise 'Unknown store id'
         end
         instance.reload
-        delete_local_files! if instance_read(:synced_to_fog) && instance_read(:synced_to_yandex) && instance_read(:synced_to_sbercloud)
+        delete_local_files! if instance_read(:synced_to_yandex) && instance_read(:synced_to_sbercloud)
       end
 
       private
