@@ -45,7 +45,7 @@ module Paperclip
           end
 
         def define_paperclip_callbacks(*callbacks)
-          define_callbacks *callbacks.flatten, CALLBACK_OPTIONS
+          define_callbacks(*callbacks.flatten, CALLBACK_OPTIONS)
           callbacks.map(&:to_sym).each do |callback|
             define_singleton_method "before_#{callback}" do |*args, &blk|
               set_callback(callback, :before, *args, &blk)

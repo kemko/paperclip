@@ -58,7 +58,7 @@ module Paperclip
       end_command
 
       begin
-        success = Paperclip.run("convert", command.gsub(/\s+/, " "))
+        _success = Paperclip.run("convert", command.gsub(/\s+/, " "))
       rescue PaperclipCommandLineError
         raise PaperclipError, "There was an error processing the thumbnail for #{@basename}" if @whiny
       end
@@ -90,7 +90,7 @@ module Paperclip
         raise PaperclipError, "There was an error processing the thumbnail for #{@basename}" if @whiny
       end
 
-      magick, type = result.split("\n")
+      magick, _type = result.split("\n")
       if magick == 'PNG'
         '-define png:big-depth=16 -define png:color-type=6'
       else

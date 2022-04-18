@@ -27,7 +27,7 @@ module Paperclip
       file = file.path if file.respond_to? "path"
       geometry = begin
                    Paperclip.run("identify", %Q[-format "%wx%h,%[exif:orientation]" "#{file}"[0]])
-                 rescue PaperclipCommandLineError => e
+                 rescue PaperclipCommandLineError
                    ""
                  end
       parse(geometry) ||
