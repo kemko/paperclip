@@ -3,8 +3,7 @@
 Gem::Specification.new do |s|
   s.name = %q{paperclip}
   s.version = "2.2.9.2"
-
-  s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
+  s.required_ruby_version = ">= 2.3.0" # rubocop:disable Gemspec/RequiredRubyVersion
   s.authors = ["Jon Yurek"]
   s.date = %q{2009-06-18}
   s.email = %q{jyurek@thoughtbot.com}
@@ -15,7 +14,6 @@ Gem::Specification.new do |s|
   s.require_paths = ["lib"]
   s.requirements = ["ImageMagick"]
   s.rubyforge_project = %q{paperclip}
-  s.rubygems_version = %q{1.3.1}
   s.summary = %q{File attachments as attributes for ActiveRecord}
 
   s.add_dependency 'activesupport', '< 7.1'
