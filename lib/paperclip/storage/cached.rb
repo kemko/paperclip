@@ -89,7 +89,8 @@ module Paperclip
         # Download by URL only if file is synced to main store. Similar to delayeds3.
         return unless synced_to?(self.class.main_store_id)
         if self.class.download_by_url
-          uri = URI(URI.encode(storage_url(style)))
+          # FIXME: do we need to escape here?
+          uri = URI(URI::DEFAULT_PARSER.escape(storage_url(style)))
           response = Net::HTTP.get_response(uri)
           create_tempfile(response.body) if response.is_a?(Net::HTTPOK)
         else

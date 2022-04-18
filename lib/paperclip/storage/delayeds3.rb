@@ -139,7 +139,8 @@ module Paperclip
 
       def download_file(style = default_style)
         return unless instance_read(:synced_to_yandex)
-        uri = URI(URI.encode(url(style)))
+        # FIXME: do we need to escape here?
+        uri = URI(URI::DEFAULT_PARSER.escape(url(style)))
         response = Net::HTTP.get_response(uri)
         create_tempfile(response.body) if response.is_a?(Net::HTTPOK)
       end
