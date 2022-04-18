@@ -35,15 +35,16 @@ module Paperclip
     end
 
     # Parses a "WxH" formatted string, where W is the width and H is the height.
-    def self.parse string
-      if (match = (string && string.match(/\b(\d*)x?(\d*)\b(?:,(\d?))?([\>\<\#\@\%^!])?/i)))
-        Geometry.new(
-          width: match[1],
-          height: match[2],
-          orientation: match[3],
-          modifier: match[4]
-        )
-      end
+    def self.parse(string)
+      match = string&.match(/\b(\d*)x?(\d*)\b(?:,(\d?))?([\>\<\#\@\%^!])?/i)
+      return unless match
+
+      Geometry.new(
+        width: match[1],
+        height: match[2],
+        orientation: match[3],
+        modifier: match[4]
+      )
     end
 
     # Swaps the height and width if necessary

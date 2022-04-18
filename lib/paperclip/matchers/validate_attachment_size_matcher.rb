@@ -8,7 +8,8 @@ module Paperclip
       class ValidateAttachmentSizeMatcher
         def initialize attachment_name
           @attachment_name = attachment_name
-          @low, @high = 0, Float::INFINITY
+          @low = 0
+          @high = Float::INFINITY
         end
 
         def less_than size

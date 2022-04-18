@@ -340,7 +340,7 @@ module Paperclip
     def instance_read(attr)
       getter = :"#{name}_#{attr}"
       if instance_variable_defined?("@_#{getter}")
-        cached = self.instance_variable_get("@_#{getter}")
+        cached = instance_variable_get("@_#{getter}")
         return cached if cached
       end
       responds = instance.respond_to?(getter)
@@ -366,7 +366,7 @@ module Paperclip
     end
 
     def validate #:nodoc:
-      @validated ||= begin
+      @validated ||= begin # rubocop:disable Naming/MemoizedInstanceVariableName
         self.class.validations.each do |validation|
           name, options = validation
           error = send(:"validate_#{name}", options) if allow_validation?(options)
