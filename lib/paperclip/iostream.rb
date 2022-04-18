@@ -15,9 +15,8 @@ module IOStream
   # in as the destination and returns the IO or Tempfile as passed in if one is sent as the destination.
   def stream_to object, path_or_file, in_blocks_of = 8192
     dstio = case path_or_file
-            when String   then File.new(path_or_file, "wb+")
-            when IO       then path_or_file
-            when Tempfile then path_or_file
+            when String then File.new(path_or_file, "wb+")
+            when IO, Tempfile then path_or_file
             end
     buffer = ""
     object.rewind

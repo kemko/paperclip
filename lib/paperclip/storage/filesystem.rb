@@ -52,7 +52,7 @@ module Paperclip
           begin
             log("deleting #{path}")
             FileUtils.rm(path)
-          rescue Errno::ENOENT => e
+          rescue Errno::ENOENT
             # ignore file-not-found, let everything else pass
           end
           begin

@@ -130,7 +130,7 @@ module Paperclip
       # Enqueues all pending jobs. First, jobs are placed to internal queue in flush_writes
       # (in after_save) and this method pushes them for execution (in after_commit).
       def flush_jobs
-        queued_jobs&.each(&:call).clear
+        queued_jobs&.each(&:call)&.clear
       end
 
       def upload_to(store_id)

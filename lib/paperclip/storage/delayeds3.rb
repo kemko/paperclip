@@ -319,7 +319,8 @@ module Paperclip
             break if File.exist?(path) # Ruby 1.9.2 does not raise if the removal failed.
           end
         rescue Errno::EEXIST, Errno::EACCES, Errno::ENOTEMPTY,
-               Errno::ENOENT, Errno::EINVAL, Errno::ENOTDIR, Errno::ESTALE => _e
+               Errno::ENOENT, Errno::EINVAL, Errno::ENOTDIR, Errno::ESTALE
+          # already deleted
         rescue SystemCallError => e
           Rollbar.error(e, {path: path, initial_path: initial_path})
         end
@@ -333,7 +334,8 @@ module Paperclip
         -> { delete_local_files!(filenames) }
       end
 
-      def delete_local_files!(filenames = filesystem_paths.values)
+      def delete_local_files!(_filenames = filesystem_paths.values)
+        # TODO: _filenames как-то должно использоваться?
         filesystem_paths.values.each do |filename|
           log("Deleting local file #{filename}")
           delete_recursive(filename)
@@ -341,7 +343,7 @@ module Paperclip
       end
 
       def flush_jobs
-        queued_jobs&.each(&:call).clear
+        queued_jobs&.each(&:call)&.clear
       end
 
       def upload_to(store_id)

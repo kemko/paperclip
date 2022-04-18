@@ -451,7 +451,7 @@ module Paperclip
     end
 
     def flush_errors #:nodoc:
-      errors.each do |error, message|
+      errors.each do |_error, message|
         [message].flatten.each {|m| instance.errors.add(name, m) }
       end
     end

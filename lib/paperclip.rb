@@ -238,7 +238,7 @@ module Paperclip
         attachment_for(name).file?
       end
 
-      validates_each(name) do |record, attr, value|
+      validates_each(name) do |record, _attr, _value|
         attachment = record.attachment_for(name)
         attachment.send(:flush_errors) unless attachment.valid?
       end
@@ -307,21 +307,21 @@ module Paperclip
     end
 
     def each_attachment
-      self.class.attachment_definitions.each do |name, definition|
+      self.class.attachment_definitions.each do |name, _definition|
         yield(name, attachment_for(name))
       end
     end
 
     def save_attached_files
       logger.info("[paperclip] Saving attachments.")
-      each_attachment do |name, attachment|
+      each_attachment do |_name, attachment|
         attachment.send(:save)
       end
     end
 
     def destroy_attached_files
       logger.info("[paperclip] Deleting attachments.")
-      each_attachment do |name, attachment|
+      each_attachment do |_name, attachment|
         attachment.send(:queue_existing_for_delete)
         attachment.send(:flush_deletes)
       end
@@ -330,7 +330,7 @@ module Paperclip
 
     def flush_attachment_jobs
       logger.info("[paperclip] flushing jobs.")
-      each_attachment do |name, attachment|
+      each_attachment do |_name, attachment|
         attachment.try(:flush_jobs)
       end
     end

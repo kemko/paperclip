@@ -36,7 +36,7 @@ module Paperclip
 
     # Parses a "WxH" formatted string, where W is the width and H is the height.
     def self.parse string
-      if match = (string && string.match(/\b(\d*)x?(\d*)\b(?:,(\d?))?([\>\<\#\@\%^!])?/i))
+      if (match = (string && string.match(/\b(\d*)x?(\d*)\b(?:,(\d?))?([\>\<\#\@\%^!])?/i)))
         Geometry.new(
           width: match[1],
           height: match[2],
@@ -129,9 +129,9 @@ module Paperclip
 
     def cropping dst, ratio, scale
       if ratio.horizontal? || ratio.square?
-        "%dx%d+%d+%d" % [ dst.width, dst.height, 0, (self.height * scale - dst.height) / 2 ]
+        "%dx%d+%d+%d" % [ dst.width, dst.height, 0, ((self.height * scale) - dst.height) / 2 ]
       else
-        "%dx%d+%d+%d" % [ dst.width, dst.height, (self.width * scale - dst.width) / 2, 0 ]
+        "%dx%d+%d+%d" % [ dst.width, dst.height, ((self.width * scale) - dst.width) / 2, 0 ]
       end
     end
   end
