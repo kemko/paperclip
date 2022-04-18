@@ -18,15 +18,18 @@ module Paperclip
 
     def self.default_options
       @default_options ||= {
-        :url           => "/system/:attachment/:id/:style/:filename",
-        :path          => ":rails_root/public:url",
-        :styles        => {},
-        :default_url   => "/:attachment/:style/missing.png",
-        :default_style => :original,
-        :storage       => :filesystem,
-        :whiny         => true,
-        :restricted_characters  => /[^\w\p{Word}\d\.\-]|(^\.{0,2}$)+/,
-        :filename_sanitizer     => nil
+        url: "/system/:attachment/:id/:style/:filename",
+        path: ":rails_root/public:url",
+        styles: {},
+        default_url: "/:attachment/:style/missing.png",
+        default_style: :original,
+        storage: :filesystem,
+        whiny: true,
+
+        # upstream paperclip has /[&$+,\/:;=?@<>\[\]\{\}\|\\\^~%# ]/
+        # \p{Word} == [[:word:]] == [Letter, Mark, Number, Connector_Punctuation]
+        restricted_characters: /[^[[:word:]]\.\-]|(^\.{0,2}$)+/,
+        filename_sanitizer: nil
       }
     end
 
