@@ -1,13 +1,14 @@
-module Paperclip
+# frozen_string_literal: true
 
+module Paperclip
   # Defines the geometry of an image.
   class Geometry
     attr_accessor :height, :width, :modifier
 
-    EXIF_ROTATED_ORIENTATION_VALUES = [5, 6, 7, 8]
+    EXIF_ROTATED_ORIENTATION_VALUES = [5, 6, 7, 8].freeze
 
     # Gives a Geometry representing the given height and width
-    def initialize width = nil, height = nil, modifier = nil
+    def initialize(width = nil, height = nil, modifier = nil)
       if width.is_a?(Hash)
         options = width
         @height = options[:height].to_f
@@ -23,35 +24,36 @@ module Paperclip
 
     # Uses ImageMagick to determing the dimensions of a file, passed in as either a
     # File or path.
-    def self.from_file file
+    def self.from_file(file)
       file = file.path if file.respond_to? "path"
       geometry = begin
-                   Paperclip.run("identify", %Q[-format "%wx%h,%[exif:orientation]" "#{file}"[0]])
-                 rescue PaperclipCommandLineError => e
+                   Paperclip.run("identify", %(-format "%wx%h,%[exif:orientation]" "#{file}"[0]))
+                 rescue PaperclipCommandLineError
                    ""
                  end
       parse(geometry) ||
-        raise(NotIdentifiedByImageMagickError.new("Формат файла не соответствует его расширению."))
+        raise(NotIdentifiedByImageMagickError, "Формат файла не соответствует его расширению.")
     end
 
     # Parses a "WxH" formatted string, where W is the width and H is the height.
-    def self.parse string
-      if match = (string && string.match(/\b(\d*)x?(\d*)\b(?:,(\d?))?([\>\<\#\@\%^!])?/i))
-        Geometry.new(
-          width: match[1],
-          height: match[2],
-          orientation: match[3],
-          modifier: match[4]
-        )
-      end
+    def self.parse(string)
+      match = string&.match(/\b(\d*)x?(\d*)\b(?:,(\d?))?([\>\<\#\@\%^!])?/i)
+      return unless match
+
+      Geometry.new(
+        width: match[1],
+        height: match[2],
+        orientation: match[3],
+        modifier: match[4]
+      )
     end
 
     # Swaps the height and width if necessary
     def auto_orient
-      if EXIF_ROTATED_ORIENTATION_VALUES.include?(@orientation)
-        @height, @width = @width, @height
-        @orientation -= 4
-      end
+      return unless EXIF_ROTATED_ORIENTATION_VALUES.include?(@orientation)
+
+      @height, @width = @width, @height
+      @orientation -= 4
     end
 
     # True if the dimensions represent a square
@@ -86,9 +88,9 @@ module Paperclip
 
     # Returns the width and height in a format suitable to be passed to Geometry.parse
     def to_s
-      s = ""
-      s << width.to_i.to_s if width > 0
-      s << "x#{height.to_i}" if height > 0
+      s = +""
+      s << width.to_i.to_s if width.positive?
+      s << "x#{height.to_i}" if height.positive?
       s << modifier.to_s
       s
     end
@@ -105,33 +107,41 @@ module Paperclip
     # destination Geometry would be completely filled by the source image, and any
     # overhanging image would be cropped. Useful for square thumbnail images. The cropping
     # is weighted at the center of the Geometry.
-    def transformation_to dst, crop = false
+    def transformation_to(dst, crop = false)
       if crop
-        ratio = Geometry.new( dst.width / self.width, dst.height / self.height )
+        ratio = Geometry.new(dst.width / width, dst.height / height)
         scale_geometry, scale = scaling(dst, ratio)
         crop_geometry         = cropping(dst, ratio, scale)
       else
-        scale_geometry        = dst.to_s
+        scale_geometry = dst.to_s
       end
 
-      [ scale_geometry, crop_geometry ]
+      [scale_geometry, crop_geometry]
     end
 
     private
 
-    def scaling dst, ratio
+    def scaling(dst, ratio)
       if ratio.horizontal? || ratio.square?
-        [ "%dx" % dst.width, ratio.width ]
+        [format("%dx", dst.width), ratio.width] # rubocop:disable Style/FormatStringToken
       else
-        [ "x%d" % dst.height, ratio.height ]
+        [format("x%d", dst.height), ratio.height] # rubocop:disable Style/FormatStringToken
       end
     end
 
-    def cropping dst, ratio, scale
+    def cropping(dst, ratio, scale)
       if ratio.horizontal? || ratio.square?
-        "%dx%d+%d+%d" % [ dst.width, dst.height, 0, (self.height * scale - dst.height) / 2 ]
+        format(
+          "%dx%d+%d+%d", # rubocop:disable Style/FormatStringToken
+          dst.width, dst.height,
+          0, ((height * scale) - dst.height) / 2
+        )
       else
-        "%dx%d+%d+%d" % [ dst.width, dst.height, (self.width * scale - dst.width) / 2, 0 ]
+        format(
+          "%dx%d+%d+%d", # rubocop:disable Style/FormatStringToken
+          dst.width, dst.height,
+          ((width * scale) - dst.width) / 2, 0
+        )
       end
     end
   end

@@ -18,15 +18,18 @@ module Paperclip
 
     def self.default_options
       @default_options ||= {
-        :url           => "/system/:attachment/:id/:style/:filename",
-        :path          => ":rails_root/public:url",
-        :styles        => {},
-        :default_url   => "/:attachment/:style/missing.png",
-        :default_style => :original,
-        :storage       => :filesystem,
-        :whiny         => true,
-        :restricted_characters  => /[^\w\p{Word}\d\.\-]|(^\.{0,2}$)+/,
-        :filename_sanitizer     => nil
+        url: "/system/:attachment/:id/:style/:filename",
+        path: ":rails_root/public:url",
+        styles: {},
+        default_url: "/:attachment/:style/missing.png",
+        default_style: :original,
+        storage: :filesystem,
+        whiny: true,
+
+        # upstream paperclip has /[&$+,\/:;=?@<>\[\]\{\}\|\\\^~%# ]/
+        # \p{Word} == [[:word:]] == [Letter, Mark, Number, Connector_Punctuation]
+        restricted_characters: /[^[[:word:]]\.\-]|(^\.{0,2}$)+/,
+        filename_sanitizer: nil
       }
     end
 
@@ -219,6 +222,7 @@ module Paperclip
 
     # Returns true if there are changes that need to be saved.
     def dirty?
+      return false unless defined?(@dirty)
       @dirty || false
     end
 
@@ -338,9 +342,11 @@ module Paperclip
     # for more details.
     def instance_read(attr)
       getter = :"#{name}_#{attr}"
+      if instance_variable_defined?("@_#{getter}")
+        cached = instance_variable_get("@_#{getter}")
+        return cached if cached
+      end
       responds = instance.respond_to?(getter)
-      cached = self.instance_variable_get("@_#{getter}")
-      return cached if cached
       instance.send(getter) if responds || attr.to_s == "file_name"
     end
 
@@ -363,13 +369,14 @@ module Paperclip
     end
 
     def validate #:nodoc:
-      return if @validated
-      self.class.validations.each do |validation|
-        name, options = validation
-        error = send(:"validate_#{name}", options) if allow_validation?(options)
-        errors[name] = error if error
+      @validated ||= begin # rubocop:disable Naming/MemoizedInstanceVariableName
+        self.class.validations.each do |validation|
+          name, options = validation
+          error = send(:"validate_#{name}", options) if allow_validation?(options)
+          errors[name] = error if error
+        end
+        true
       end
-      @validated = true
     end
 
     def allow_validation? options #:nodoc:
@@ -447,7 +454,7 @@ module Paperclip
     end
 
     def flush_errors #:nodoc:
-      errors.each do |error, message|
+      errors.each do |_error, message|
         [message].flatten.each {|m| instance.errors.add(name, m) }
       end
     end

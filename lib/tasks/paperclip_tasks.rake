@@ -52,7 +52,7 @@ namespace :paperclip do
     desc "Regenerates content_type/size metadata for a given CLASS (and optional ATTACHMENT)."
     task :metadata => :environment do
       for_all_attachments do |instance, name|
-        if file = instance.send(name).to_file
+        if (file = instance.send(name).to_file)
           instance.send("#{name}_file_name=", instance.send("#{name}_file_name").strip)
           instance.send("#{name}_content_type=", file.content_type.strip)
           instance.send("#{name}_file_size=", file.size) if instance.respond_to?("#{name}_file_size")

@@ -2,7 +2,7 @@ module Paperclip
   class Railtie < Rails::Railtie
     initializer 'paperclip.railtie.configure' do
       if defined? Rails.root
-        Dir.glob(File.join(File.expand_path(Rails.root), "lib", "paperclip_processors", "*.rb")).each do |processor|
+        Dir.glob(Rails.root.join("lib/paperclip_processors/*.rb").expand_path).sort.each do |processor|
           require processor
         end
       end

@@ -15,7 +15,8 @@ module Paperclip
       Paperclip::Upfile.content_type_from_file(@file.path)
     end
 
-    def optimize(file)
+    def optimize(_file)
+      # TODO: use the arg?
       src = @file.path
       dst = "#{src}-#{SecureRandom.hex}"
       src_shell = src.shellescape

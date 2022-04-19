@@ -21,13 +21,11 @@ module Paperclip
       end
 
       module Running
-        def run_paperclip_callbacks(callback, opts = nil, &blk)
+        def run_paperclip_callbacks(callback, _opts = nil)
           # The overall structure of this isn't ideal since after callbacks run even if
           # befores return false. But this is how rails 3's callbacks work, unfortunately.
-          if run_callbacks(:"before_#{callback}"){ |result, object| result == false } != false
-            blk.call
-          end
-          run_callbacks(:"after_#{callback}"){ |result, object| result == false }
+          yield if run_callbacks(:"before_#{callback}") { |result, _object| result == false } != false
+          run_callbacks(:"after_#{callback}") { |result, _object| result == false }
         end
       end
     end
@@ -39,13 +37,13 @@ module Paperclip
           if rails_version >= Gem::Version.new('5.0')
             {}
           elsif rails_version >= Gem::Version.new('4.1')
-            {terminator: ->(target, result) { result == false }}
+            { terminator: ->(_target, result) { result == false } }
           else
-            {terminator: 'result == false'}
+            { terminator: 'result == false' }
           end
 
         def define_paperclip_callbacks(*callbacks)
-          define_callbacks *callbacks.flatten, CALLBACK_OPTIONS
+          define_callbacks(*callbacks.flatten, CALLBACK_OPTIONS)
           callbacks.map(&:to_sym).each do |callback|
             define_singleton_method "before_#{callback}" do |*args, &blk|
               set_callback(callback, :before, *args, &blk)

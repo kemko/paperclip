@@ -232,7 +232,7 @@ class AttachmentTest < Test::Unit::TestCase
     end
 
     teardown do
-      @file.close
+      @file&.close
       Paperclip::Attachment.default_options.merge!(@old_defaults)
     end
 
