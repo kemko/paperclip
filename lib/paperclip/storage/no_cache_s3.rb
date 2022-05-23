@@ -35,7 +35,7 @@ module Paperclip
           super
 
           @key_template = options.fetch(:key)
-          @key_template = key_template[1..] if key_template.start_with?('/')
+          @key_template = key_template[1..-1] if key_template.start_with?('/') # rubocop:disable Style/SlicingWithRange
           @url_template = options.fetch(:url).gsub(':key', key_template)
           @stores = options.fetch(:stores).symbolize_keys
           @store_ids = options[:stores].keys.map(&:to_sym)
