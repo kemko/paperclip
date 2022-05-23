@@ -74,7 +74,7 @@ module Paperclip
       end
 
       # If store_id is given, it forces download from specific store using fog interface.
-      # Otherway it tries to download from cache store and finally uses url to download file
+      # Otherway uses url to download file
       # via HTTP. This is the most compatible way to delayeds3.
       def to_file(style = default_style, store_id = nil)
         style_key = key(style)
