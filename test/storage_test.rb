@@ -10,8 +10,7 @@ class StorageTest < Test::Unit::TestCase
                     path: ':attachment/:style/:basename.:extension',
                     s3_credentials: {},
                     yandex_credentials: {},
-                    sbercloud_credentials: {},
-                    fog_credentials: {}
+                    sbercloud_credentials: {}
     end
 
     should 'be extended by the Delayeds3 module' do

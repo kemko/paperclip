@@ -36,15 +36,12 @@ module Paperclip
       module ClassMethods
         attr_reader :s3_url_template, :s3_path_template,
                     :filesystem_url_template, :filesystem_path_template,
-                    :s3_credentials, :s3_bucket,
-                    :fog_provider, :fog_credentials, :fog_directory,
-                    :synced_to_s3_field, :synced_to_fog_field,
+                    :s3_credentials, :s3_bucket, :synced_to_s3_field,
                     :synced_to_yandex_field, :yandex_bucket_name,
                     :yandex_credentials,
                     :synced_to_sbercloud_field,
                     :sbercloud_bucket_name,
                     :sbercloud_credentials
-
 
         def setup(*)
           super
@@ -62,18 +59,9 @@ module Paperclip
           @yandex_bucket_name = options[:yandex_bucket]
           @sbercloud_bucket_name = options[:sbercloud_bucket]
 
-          @fog_provider = options[:fog_provider]
-          @fog_directory = options[:fog_directory]
-          @fog_credentials = options[:fog_credentials].symbolize_keys
-
           @synced_to_s3_field ||= :"#{attachment_name}_synced_to_s3"
-          @synced_to_fog_field ||= :"#{attachment_name}_synced_to_fog"
           @synced_to_yandex_field ||= :"#{attachment_name}_synced_to_yandex"
           @synced_to_sbercloud_field ||= :"#{attachment_name}_synced_to_sbercloud"
-        end
-
-        def fog_storage
-          @fog_storage ||= Fog::Storage.new(fog_credentials.merge(provider: fog_provider))
         end
 
         def aws_bucket
@@ -107,7 +95,7 @@ module Paperclip
         end
       end
 
-      delegate :synced_to_s3_field, :synced_to_fog_field, :synced_to_yandex_field, :synced_to_sbercloud_field, to: :class
+      delegate :synced_to_s3_field, :synced_to_yandex_field, :synced_to_sbercloud_field, to: :class
 
       def initialize(*)
         super
@@ -159,13 +147,6 @@ module Paperclip
           self.class.yandex_bucket.object(s3_path(style)).exists?
         when :sbercloud
           self.class.sbercloud_bucket.object(s3_path(style)).exists?
-        when :fog
-          begin
-            self.class.fog_storage.head_object(self.class.fog_directory, s3_path(style))
-            true
-          rescue Excon::Error::NotFound
-            false
-          end
         else
           raise 'Unknown store'
         end
@@ -252,35 +233,6 @@ module Paperclip
         end
       end
 
-      def write_to_fog
-        return unless instance.respond_to? synced_to_fog_field
-        return true if instance_read(:synced_to_fog)
-        paths = filesystem_paths
-        if paths.length < styles.length || paths.empty? # To make monitoring easier
-          raise "Local files not found for #{instance.class.name}:#{instance.id}"
-        end
-        paths.each do |style, file|
-          path = s3_path(style)
-          log "Saving to Fog with key #{path}"
-          options = {
-            "Content-Type" => file_content_type(file),
-            "Cache-Control" => "max-age=#{10.year.to_i}",
-            "x-goog-acl" => "public-read"
-          }
-
-          File.open(file, 'r') do |f|
-            self.class.fog_storage.put_object self.class.fog_directory, path, f, options
-          end
-        end
-        # не вызываем колбеки и спокойно себя ведем если объект удален
-        if instance.class.unscoped.where(id: instance.id).update_all(synced_to_fog_field => true) == 1
-          instance.touch
-        end
-      rescue Excon::Errors::SocketError => e
-        raise e.socket_error if e.socket_error.is_a?(Errno::ENOENT) || e.socket_error.is_a?(Errno::ESTALE)
-        raise
-      end
-
       def flush_writes #:nodoc:
         return if queued_for_write.empty?
 
@@ -350,7 +302,6 @@ module Paperclip
       def upload_to(store_id)
         case store_id.to_s
         when 's3' then write_to_s3
-        when 'fog' then write_to_fog
         when 'yandex' then write_to_yandex
         when 'sbercloud' then write_to_sbercloud
         else raise 'Unknown store id'
