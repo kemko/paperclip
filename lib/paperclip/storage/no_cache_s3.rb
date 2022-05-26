@@ -96,8 +96,8 @@ module Paperclip
         end
       end
 
-      def path(*)
-        raise '#path is not available for this type of storage, use #to_file instead'
+      def path(style = default_style)
+        storage_url(style)
       end
 
       # Checks if attached file exists. When store_id is not given
