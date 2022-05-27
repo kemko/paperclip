@@ -111,7 +111,7 @@ module Paperclip
       def flush_writes # :nodoc:
         return if queued_for_write.empty?
 
-        write_to_store(self.class.main_store_id, queued_for_write)
+        sync_to(self.class.main_store_id, queued_for_write)
         unless delay_processing? && dirty?
           (self.class.store_ids - [self.class.main_store_id]).each { |store_id| enqueue_sync_job(store_id) }
         end
@@ -134,12 +134,12 @@ module Paperclip
       end
 
       # Writes files from main store to other permanent stores.
-      def sync_to(store_id)
+      def sync_to(store_id, files = nil)
         synced_field_name = self.class.synced_field_name(store_id)
         return unless instance.respond_to?(synced_field_name)
         return true if instance.public_send(synced_field_name)
 
-        files = self.class.all_styles.each_with_object({}) do |style, result|
+        files ||= self.class.all_styles.each_with_object({}) do |style, result|
           file = to_file(style, self.class.main_store_id)
           # For easier monitoring
           unless file
