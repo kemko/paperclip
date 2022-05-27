@@ -8,7 +8,6 @@ class StorageTest < Test::Unit::TestCase
       rebuild_model storage: :delayeds3,
                     bucket: 'testing',
                     path: ':attachment/:style/:basename.:extension',
-                    s3_credentials: {},
                     yandex_credentials: {},
                     sbercloud_credentials: {}
     end

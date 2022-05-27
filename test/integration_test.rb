@@ -324,10 +324,10 @@ class IntegrationTest < Test::Unit::TestCase
         rebuild_model :styles => { :large => "300x300>",
                                    :medium => "100x100",
                                    :thumb => ["32x32#", :gif] },
-                      :storage => :s3,
+                      :storage => :yandex,
                       :whiny_thumbnails => true,
                       # :s3_options => {:logger => Logger.new(StringIO.new)},
-                      :s3_credentials => File.new(File.join(File.dirname(__FILE__), "s3.yml")),
+                      :yandex_credentials => File.new(File.join(File.dirname(__FILE__), "s3.yml")),
                       :default_style => :medium,
                       :bucket => ENV['S3_TEST_BUCKET'],
                       :path => ":class/:attachment/:id/:style/:basename.:extension"
