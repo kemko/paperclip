@@ -48,6 +48,14 @@ class NoCachedS3Test < Test::Unit::TestCase
   context 'assigning file' do
     setup { Sidekiq::Testing.fake! }
 
+    should 'set synced_fields to false' do
+      @instance.avatar_synced_to_store_1 = true
+      @instance.avatar_synced_to_store_2 = true
+      @instance.avatar = stub_file('test.txt', 'qwe')
+      assert_equal false, @instance.avatar_synced_to_store_1
+      assert_equal false, @instance.avatar_synced_to_store_2
+    end
+
     should 'write to main store and enqueue jobs to copy to others' do
       @instance.update!(avatar: stub_file('test.txt', 'qwe'))
       @instance.reload

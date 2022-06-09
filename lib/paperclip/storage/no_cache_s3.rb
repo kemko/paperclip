@@ -47,11 +47,14 @@ module Paperclip
           stores.fetch(store_id.to_sym)
         end
 
-        def synced_field_name(store_id)
+        def synced_field_names
           @synced_field_names ||= store_ids.each_with_object({}) do |key, result|
             result[key] = :"#{attachment_name}_synced_to_#{key}"
           end
-          @synced_field_names[store_id.to_sym]
+        end
+
+        def synced_field_name(store_id)
+          synced_field_names[store_id.to_sym]
         end
       end
 
@@ -108,6 +111,19 @@ module Paperclip
         !self.class.store_by(store_id).files.head(key(style)).nil?
       end
 
+      def assign(uploaded_file)
+        super(uploaded_file)
+
+        # если не надо ничего переписывать, ничего не трогаем
+        return if !queued_for_write && !queued_for_delete
+
+        self.class.synced_field_names.each_value do |field_name|
+          next unless instance.respond_to?(field_name)
+
+          instance.public_send("#{field_name}=", false)
+        end
+      end
+
       def flush_writes # :nodoc:
         return if queued_for_write.empty?
 
@@ -118,9 +134,9 @@ module Paperclip
         queued_for_write.clear
       end
 
-      # Important: It does not delete files from permanent stores.
       def delete_styles_later(styles)
-        # этот метод удаляет картинки из стораджа-кэша, а в данном типе стораджа у нас его нет
+        # пока ничего не удаляем, потому что используем только для импортов, там названия файлов меняться не будут,
+        #   значит, и чистить нечего
       end
 
       # Enqueues all pending jobs. First, jobs are placed to internal queue in flush_writes
