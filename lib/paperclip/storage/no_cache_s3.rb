@@ -6,13 +6,10 @@ module Paperclip
     # All stores are Fog::Storage::Directory instances (it has S3 and filesystem adapters).
     #
     # Options:
-    # - `:stores` - one or more permanent storages (hash of {id => fog_directory}),
+    # - `:stores` - one or more permanent storages (hash of settings for AWS resources),
     #   first one is main others are mirrors,
     # - `:key` - identifier template.
     # - `:url` - path template(?).
-    #   Values support :key interpolation which is merformed at configuration-time.
-    # - `:to_file_using_fog` - use fog interface in #to_file to fetch file from store.
-    #   If disabled, downloads file by url via usual HTTP request.
     #
     # It uses `#{attachement_name}_synced_to_#{store_id}` field to mark that file
     # is uploaded to particular storage.
@@ -37,7 +34,11 @@ module Paperclip
           @key_template = options.fetch(:key)
           @key_template = key_template[1..-1] if key_template.start_with?('/') # rubocop:disable Style/SlicingWithRange
           @url_template = options.fetch(:url).gsub(':key', key_template)
-          @stores = options.fetch(:stores).symbolize_keys
+          @stores = options.fetch(:stores).each_with_object({}) do |(store_id, config), stores|
+            stores[store_id.to_sym] = ::Aws::S3::Resource.new(client: ::Aws::S3::Client.new(
+              config.slice(:access_key_id, :secret_access_key, :endpoint, :region)
+            )).bucket(config[:bucket])
+          end
           @store_ids = options[:stores].keys.map(&:to_sym)
           @main_store_id = store_ids.first
           @download_by_url = options[:download_by_url]
@@ -76,12 +77,12 @@ module Paperclip
         flush_jobs
       end
 
-      # If store_id is given, it forces download from specific store using fog interface.
+      # If store_id is given, it forces download from specific store using
       # Otherway uses url to download file
       # via HTTP. This is the most compatible way to delayeds3.
       def to_file(style = default_style, store_id = nil)
         style_key = key(style)
-        return download_from_fog(store_id, style_key) if store_id
+        return download_from_store(store_id, style_key) if store_id
 
         result = super(style)
         return result if result
@@ -95,7 +96,7 @@ module Paperclip
           response = Net::HTTP.get_response(uri)
           create_tempfile(response.body) if response.is_a?(Net::HTTPOK)
         else
-          download_from_fog(self.class.main_store_id, style_key)
+          download_from_store(self.class.main_store_id, style_key)
         end
       end
 
@@ -108,7 +109,7 @@ module Paperclip
       def exists?(style = default_style, store_id = nil)
         return true if !store_id && synced_to?(self.class.main_store_id)
 
-        !self.class.store_by(store_id).files.head(key(style)).nil?
+        !self.class.store_by(store_id).object(key(style)).exists?
       end
 
       def assign(uploaded_file)
@@ -186,8 +187,11 @@ module Paperclip
         queued_jobs.push -> { DelayedUpload.upload_later(self, store_id) }
       end
 
-      def download_from_fog(store_id, key)
-        body = self.class.store_by(store_id).files.get(key)&.body
+      def download_from_store(store_id, key)
+        object = self.class.store_by(store_id).object(key)
+        return unless object.exists?
+
+        body = object.get&.body
         create_tempfile(body) if body
       end
 
@@ -195,17 +199,13 @@ module Paperclip
         store = self.class.store_by(store_id)
         common_options = {
           content_type: instance_read(:content_type),
-          cache_control: "max-age=#{10.years.to_i}"
+          cache_control: "max-age=#{10.years.to_i}",
+          acl: 'public-read'
         }
         files.each do |style, file|
           path = key(style)
           log "Saving to #{store_id}:#{path}"
-          store.files.create(
-            key: path,
-            public: true,
-            body: file,
-            **common_options
-          )
+          store.put_object(common_options.merge(key: path, body: file))
         end
       end
     end
