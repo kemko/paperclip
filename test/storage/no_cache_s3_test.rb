@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
 require 'test_helper'
-require 'fog/local'
 require 'sidekiq'
 require 'sidekiq/testing'
+require 'aws-sdk-s3'
 
 require 'delayed_paperclip'
 DelayedPaperclip::Railtie.insert
@@ -17,11 +17,6 @@ end
 class NoCachedS3Test < Test::Unit::TestCase
   TEST_ROOT = Pathname(__dir__).join('test')
 
-  def fog_directory(suffix)
-    Fog::Storage.new(provider: 'Local', local_root: TEST_ROOT.join(suffix.to_s))
-      .directories.new(key: '', public: true)
-  end
-
   def stub_file(name, content)
     StringIO.new(content).tap { |string_io| string_io.stubs(:original_filename).returns(name) }
   end
@@ -32,8 +27,8 @@ class NoCachedS3Test < Test::Unit::TestCase
       key: ':filename',
       url: 'http://store.local/:key',
       stores: {
-        store_1: fog_directory(:store_1),
-        store_2: fog_directory(:store_2)
+        store_1: { access_key_id: '123', secret_access_key: '123', region: 'r', bucket: 'buck' },
+        store_2: { access_key_id: '456', secret_access_key: '456', region: 'r', bucket: 'buck' }
       }
     )
     modify_table(:dummies) do |table|
@@ -41,6 +36,10 @@ class NoCachedS3Test < Test::Unit::TestCase
       table.boolean :avatar_synced_to_store_2, null: false, default: false
     end
     @instance = Dummy.create
+    @store1_stub = mock
+    @store2_stub = mock
+    @instance.avatar.class.stubs(:stores).returns({ store_1: @store1_stub, store_2: @store2_stub })
+    Dummy::AvatarAttachment.any_instance.stubs(:to_file).returns(stub_file('test.txt', 'qwe'))
   end
 
   teardown { TEST_ROOT.rmtree if TEST_ROOT.exist? }
@@ -57,12 +56,11 @@ class NoCachedS3Test < Test::Unit::TestCase
     end
 
     should 'write to main store and enqueue jobs to copy to others' do
+      @store1_stub.expects(:put_object).once
+      @store2_stub.expects(:put_object).never
       @instance.update!(avatar: stub_file('test.txt', 'qwe'))
       @instance.reload
       attachment = @instance.avatar
-      key = attachment.key
-      assert_equal false, attachment.class.store_by(:store_1).files.head(key).nil?
-      assert_equal true, attachment.class.store_by(:store_2).files.head(key).nil?
       assert_equal 'http://store.local/test.txt', attachment.url(:original, false)
     end
 
@@ -71,12 +69,11 @@ class NoCachedS3Test < Test::Unit::TestCase
       teardown { Sidekiq::Testing.fake! }
 
       should 'write to all permanent stores' do
+        @store1_stub.expects(:put_object).once
+        @store2_stub.expects(:put_object).once
         @instance.update!(avatar: stub_file('test.txt', 'qwe'))
         @instance.reload
         attachment = @instance.avatar
-        key = attachment.key
-        assert_equal false, attachment.class.store_by(:store_1).files.head(key).nil?
-        assert_equal false, attachment.class.store_by(:store_2).files.head(key).nil?
         assert_equal 'http://store.local/test.txt', attachment.url(:original, false)
       end
     end
