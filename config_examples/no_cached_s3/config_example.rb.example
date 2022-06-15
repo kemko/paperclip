@@ -1,61 +1,30 @@
 # frozen_string_literal: true
 
-STATIC_CDN = Rails.env.development? ? 'http://localhost:3000' : 'https://static-ru.insales.ru'
-
-# Fog::Storage требует разные префиксы для разных S3 стораджев.
-# Этот хэлпер использует поле с префиксом, если есть, или добавляет его.
-prefix_credentials = lambda do |prefix, input|
-  result = input.symbolize_keys
-  %i[access_key_id secret_access_key].each do |field|
-    key = :"#{prefix}_#{field}"
-    result[key] ||= result.delete(field) if result[field]
-  end
-  result
-end
-
-fog_directory = lambda do |bucket:, **options|
-  Fog::Storage.new(options).directories.new(key: bucket, public: true)
-end
-
 PAPERCLIP_NO_CACHE_S3_CONFIG_BASE =
-  case Rails.env
-  when 'production', 'test'
-    {
-      storage: :no_cache_s3,
-      # Не скачиваем файлы по http в тестах, чтобы не делать стабы vcr для всего подряд.
-      # В продакшене файлы скачиваются по url, чтобы качать через cdn и не тратить облачный трафик.
-      to_file_using_fog: Rails.env.test?,
-      url: "#{STATIC_CDN}/:key", # Умный cdn сам решает куда идти за файлом.
-      stores: {
-        yandex: fog_directory[
-          provider: 'AWS',
-          region: 'ru-central1',
-          endpoint: 'https://storage.yandexcloud.net',
-          **prefix_credentials[:aws, Rails.application.secrets.yandex_cloud],
-          bucket: 'digital-static'
-        ],
-        sbercloud: fog_directory[
-          provider: 'AWS',
-          region: 'ru-moscow',
-          endpoint: 'https://obs.ru-moscow-1.hc.sbercloud.ru',
-          **prefix_credentials[:aws, Rails.application.secrets.sbercloud],
-          bucket: 'digital-static'
-        ]
-      }
-    }.freeze
-  else
-    {
-      storage: :no_cache_s3,
-      url: '/:key',
-      stores: {
-        s3: fog_directory[
-          provider: 'Local',
-          local_root: Rails.root.join('public').to_s,
-          bucket: ''
-        ]
-      }
-    }.freeze
-  end
+{
+  storage: :no_cache_s3,
+  # Не скачиваем файлы по http в тестах, чтобы не делать стабы vcr для всего подряд.
+  # В продакшене файлы скачиваются по url, чтобы качать через cdn и не тратить облачный трафик.
+  to_file_using_fog: Rails.env.test?,
+  url: "#{STATIC_CDN}/:key", # Умный cdn сам решает куда идти за файлом.
+  stores: {
+    yandex: {
+      region: 'ru-central1',
+      endpoint: 'https://storage.yandexcloud.net',
+      access_key_id: '123',
+      secret_access_key: '345',
+      bucket: 'digital-static'
+    },
+    sbercloud: {
+      provider: 'AWS',
+      region: 'ru-moscow',
+      endpoint: 'https://obs.ru-moscow-1.hc.sbercloud.ru',
+      access_key_id: '123',
+      secret_access_key: '345',
+      bucket: 'digital-static'
+    }
+  }
+}.freeze
 
 # Добавляет общий префикс ко всем ключам.
 PAPERCLIP_NO_CACHE_S3_CONFIG = ->(key) { PAPERCLIP_NO_CACHE_S3_CONFIG_BASE.merge(key: "digital/#{key}") }
