@@ -14,7 +14,7 @@ class FakeModel
   attr_accessor :synced_to_store_1, :synced_to_store_2
 end
 
-class NoCachedS3Test < Test::Unit::TestCase
+class NoCacheS3Test < Test::Unit::TestCase
   TEST_ROOT = Pathname(__dir__).join('test')
 
   def stub_file(name, content)

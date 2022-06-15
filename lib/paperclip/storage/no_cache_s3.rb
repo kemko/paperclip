@@ -26,7 +26,8 @@ module Paperclip
                     :stores,
                     :store_ids,
                     :main_store_id,
-                    :download_by_url
+                    :download_by_url,
+                    :upload_options
 
         def setup(*)
           super
@@ -42,6 +43,7 @@ module Paperclip
           @store_ids = options[:stores].keys.map(&:to_sym)
           @main_store_id = store_ids.first
           @download_by_url = options[:download_by_url]
+          @upload_options = options[:upload_options] || {}
         end
 
         def store_by(store_id)
@@ -201,7 +203,7 @@ module Paperclip
           content_type: instance_read(:content_type),
           cache_control: "max-age=#{10.years.to_i}",
           acl: 'public-read'
-        }
+        }.merge(self.class.upload_options)
         files.each do |style, file|
           path = key(style)
           log "Saving to #{store_id}:#{path}"
