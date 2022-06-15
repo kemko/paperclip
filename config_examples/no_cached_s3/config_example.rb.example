@@ -1,0 +1,30 @@
+# frozen_string_literal: true
+
+PAPERCLIP_NO_CACHE_S3_CONFIG_BASE =
+{
+  storage: :no_cache_s3,
+  # Не скачиваем файлы по http в тестах, чтобы не делать стабы vcr для всего подряд.
+  # В продакшене файлы скачиваются по url, чтобы качать через cdn и не тратить облачный трафик.
+  to_file_using_fog: Rails.env.test?,
+  url: "#{STATIC_CDN}/:key", # Умный cdn сам решает куда идти за файлом.
+  stores: {
+    yandex: {
+      region: 'ru-central1',
+      endpoint: 'https://storage.yandexcloud.net',
+      access_key_id: '123',
+      secret_access_key: '345',
+      bucket: 'digital-static'
+    },
+    sbercloud: {
+      provider: 'AWS',
+      region: 'ru-moscow',
+      endpoint: 'https://obs.ru-moscow-1.hc.sbercloud.ru',
+      access_key_id: '123',
+      secret_access_key: '345',
+      bucket: 'digital-static'
+    }
+  }
+}.freeze
+
+# Добавляет общий префикс ко всем ключам.
+PAPERCLIP_NO_CACHE_S3_CONFIG = ->(key) { PAPERCLIP_NO_CACHE_S3_CONFIG_BASE.merge(key: "digital/#{key}") }

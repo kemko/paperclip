@@ -125,6 +125,7 @@ class AttachmentTest < Test::Unit::TestCase
       @attachment = attachment :path => ":basename.:extension",
                                :styles => { :default => ["100x100", :png] },
                                :default_style => :default
+      @attachment.post_processing = false
       @file = StringIO.new("...")
       @file.stubs(:original_filename).returns("file.jpg")
     end
