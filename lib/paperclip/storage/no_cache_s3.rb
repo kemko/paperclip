@@ -193,7 +193,7 @@ module Paperclip
         object = self.class.store_by(store_id).object(key)
         return unless object.exists?
 
-        body = object.get&.body
+        body = object.get&.body&.read
         create_tempfile(body) if body
       end
 
