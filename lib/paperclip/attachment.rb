@@ -465,7 +465,10 @@ module Paperclip
       filename = instance_read(:file_name)
       extname = File.extname(original_filename)
       basename = File.basename(filename, extname)
-      file = Tempfile.new([basename, extname]).tap(&:binmode)
+      file = Tempfile.new([basename, extname]).tap do |tfile|
+        tfile.binmode
+        tfile.original_filename = "#{basename}.#{extname}"
+      end
       file.original_filename = filename
       file.write(body)
       file.tap(&:flush).tap(&:rewind)
