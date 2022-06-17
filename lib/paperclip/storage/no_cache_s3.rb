@@ -71,7 +71,7 @@ module Paperclip
       end
 
       def storage_url(style = default_style)
-        interpolate(self.class.url_template, style)
+        "#{self.class.store_by(self.class.main_store_id).url}/#{key(style)}"
       end
 
       def reprocess!
