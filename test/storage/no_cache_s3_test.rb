@@ -38,6 +38,8 @@ class NoCacheS3Test < Test::Unit::TestCase
     @instance = Dummy.create
     @store1_stub = mock
     @store2_stub = mock
+    @store1_stub.stubs(:url).returns('http://store.local')
+    @store2_stub.stubs(:url).returns('http://store.local')
     @instance.avatar.class.stubs(:stores).returns({ store_1: @store1_stub, store_2: @store2_stub })
     Dummy::AvatarAttachment.any_instance.stubs(:to_file).returns(stub_file('test.txt', 'qwe'))
   end
