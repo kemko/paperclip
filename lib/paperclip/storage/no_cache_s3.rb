@@ -93,7 +93,7 @@ module Paperclip
         return unless synced_to?(self.class.main_store_id)
 
         if self.class.download_by_url
-          create_tempfile(self.class.main_store_id.object(style_key).get.body.read)
+          create_tempfile(self.class.store_by(self.class.main_store_id).object(style_key).get.body.read)
         else
           download_from_store(self.class.main_store_id, style_key)
         end
