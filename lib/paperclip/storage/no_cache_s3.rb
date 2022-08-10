@@ -71,7 +71,11 @@ module Paperclip
       end
 
       def storage_url(style = default_style)
-        "#{self.class.store_by(self.class.main_store_id).url}/#{key(style)}"
+        if self.class.url_template.present?
+          interpolate(self.class.url_template, style)
+        else
+          "#{self.class.store_by(self.class.main_store_id).url}/#{key(style)}"
+        end
       end
 
       def reprocess!
@@ -93,7 +97,7 @@ module Paperclip
         return unless synced_to?(self.class.main_store_id)
 
         if self.class.download_by_url
-          create_tempfile(self.class.store_by(self.class.main_store_id).object(style_key).get.body.read)
+          create_tempfile(URI.parse(storage_url(style)).open)
         else
           download_from_store(self.class.main_store_id, style_key)
         end
