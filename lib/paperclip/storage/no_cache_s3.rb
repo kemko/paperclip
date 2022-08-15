@@ -97,7 +97,7 @@ module Paperclip
         return unless synced_to?(self.class.main_store_id)
 
         if self.class.download_by_url
-          create_tempfile(URI.parse(storage_url(style)).open)
+          create_tempfile(URI.parse(presigned_url(style)).open)
         else
           download_from_store(self.class.main_store_id, style_key)
         end
@@ -176,6 +176,18 @@ module Paperclip
       end
 
       private
+
+      # К ссылке, сформированной по паттерну (например, через наш CDN), добавляем параметры с подписью
+      def presigned_url(style)
+        uri = URI.parse(storage_url(style))
+        basic_params = CGI.parse(uri.query || '')
+        presign_params = CGI.parse(URI.parse(self.class.store_by(self.class.main_store_id).object(key(style))
+          .presigned_url(:get)).query)
+
+        result_params = basic_params.merge(presign_params)
+        uri.query = URI.encode_www_form(result_params)
+        uri.to_s
+      end
 
       def synced_to?(store_id)
         instance.try(self.class.synced_field_name(store_id))
