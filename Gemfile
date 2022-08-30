@@ -24,6 +24,8 @@ gem 'thoughtbot-shoulda', '>= 2.9.0'
 gem 'pry'
 gem 'pry-byebug'
 
+gem 'addressable'
+
 group :lint do
   gem 'rubocop', '0.81.0'
   gem 'rubocop-rails', '2.5.2'

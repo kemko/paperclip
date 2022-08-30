@@ -180,7 +180,7 @@ module Paperclip
 
       # К ссылке, сформированной по паттерну (например, через наш CDN), добавляем параметры с подписью
       def presigned_url(style)
-        uri = URI.parse(CGI.escape(storage_url(style)))
+        uri = URI.parse(Addressable::URI.escape(storage_url(style)))
         basic_params = CGI.parse(uri.query || '')
         presign_params = CGI.parse(URI.parse(self.class.store_by(self.class.main_store_id).object(key(style))
           .presigned_url(:get)).query)
