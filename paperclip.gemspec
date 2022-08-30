@@ -17,5 +17,6 @@ Gem::Specification.new do |s|
   s.summary = %q{File attachments as attributes for ActiveRecord}
 
   s.add_dependency 'activesupport', '< 7.1'
+  s.add_dependency 'addressable'
   s.add_dependency 'fastimage'
 end
