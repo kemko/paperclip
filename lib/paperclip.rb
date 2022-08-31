@@ -27,6 +27,7 @@
 
 require 'tempfile'
 require 'fastimage'
+require 'addressable'
 require 'paperclip/upfile'
 require 'paperclip/iostream'
 require 'paperclip/geometry'
