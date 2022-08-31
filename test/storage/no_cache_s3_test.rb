@@ -41,7 +41,7 @@ class NoCacheS3Test < Test::Unit::TestCase
     @store1_stub.stubs(:url).returns('http://store.local')
     @store2_stub.stubs(:url).returns('http://store.local')
     @instance.avatar.class.stubs(:stores).returns({ store_1: @store1_stub, store_2: @store2_stub })
-    Dummy::AvatarAttachment.any_instance.stubs(:to_file).returns(stub_file('кириллица.txt', 'qwe'))
+    Dummy::AvatarAttachment.any_instance.stubs(:to_file).returns(stub_file('text.txt', 'qwe'))
   end
 
   teardown { TEST_ROOT.rmtree if TEST_ROOT.exist? }
@@ -78,6 +78,24 @@ class NoCacheS3Test < Test::Unit::TestCase
         attachment = @instance.avatar
         assert_equal 'http://store.local/test.txt', attachment.url(:original, false)
       end
+    end
+  end
+
+  context 'generating presigned_url' do
+    setup do
+      Dummy::AvatarAttachment.any_instance.stubs(:storage_url).returns('http://домен.pф/ключ?param1=параметр')
+      object_stub = mock
+      object_stub.stubs(:presigned_url).returns('http://другой.домен?param2=param_value')
+      @store1_stub.stubs(:object).returns(object_stub)
+    end
+
+    should 'escape cyrillic and work' do
+      @instance.avatar = stub_file('кириллица.txt', 'qwe')
+      assert_equal(
+        "http://xn--d1acufc.xn--p-eub/%D0%BA%D0%BB%D1%8E%D1%87?"\
+        "param1=%D0%BF%D0%B0%D1%80%D0%B0%D0%BC%D0%B5%D1%82%D1%80&param2=param_value",
+        @instance.avatar.send(:presigned_url, :original)
+      )
     end
   end
 end
