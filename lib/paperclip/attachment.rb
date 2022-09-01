@@ -414,7 +414,7 @@ module Paperclip
     end
 
     def post_process #:nodoc:
-      return if !content_type.include?('image') || content_type.include?('svg')
+      return unless subject_to_post_process?
       return if queued_for_write[:original].nil?
 
       instance.run_paperclip_callbacks(:post_process) do
@@ -472,6 +472,10 @@ module Paperclip
       file.original_filename = filename
       file.write(body)
       file.tap(&:flush).tap(&:rewind)
+    end
+
+    def subject_to_post_process?
+      content_type.include?('image') && !content_type.include?('svg')
     end
   end
 end

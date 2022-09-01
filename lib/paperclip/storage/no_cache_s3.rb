@@ -159,7 +159,7 @@ module Paperclip
         return unless instance.respond_to?(synced_field_name)
         return true if instance.public_send(synced_field_name)
 
-        styles_to_upload = content_type.include?('image') ? self.class.all_styles : [:original]
+        styles_to_upload = subject_to_post_process? ? self.class.all_styles : [:original]
         files ||= styles_to_upload.each_with_object({}) do |style, result|
           file = to_file(style, self.class.main_store_id)
           # For easier monitoring
