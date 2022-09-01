@@ -20,6 +20,7 @@ module Paperclip
       when %r"html?"                 then "text/html"
       when "csv", "xml", "css", "js" then "text/#{type}"
       when "liquid"                  then "text/x-liquid"
+      when 'svg'                     then 'image/svg+xml'
       else "application/x-#{type}"
       end
     end

@@ -414,7 +414,7 @@ module Paperclip
     end
 
     def post_process #:nodoc:
-      return unless content_type.match(/image/)
+      return if !content_type.include?('image') || content_type.include?('svg')
       return if queued_for_write[:original].nil?
 
       instance.run_paperclip_callbacks(:post_process) do
