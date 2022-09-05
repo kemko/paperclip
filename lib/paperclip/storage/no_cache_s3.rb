@@ -34,7 +34,6 @@ module Paperclip
 
           @key_template = options.fetch(:key)
           @key_template = key_template[1..-1] if key_template.start_with?('/') # rubocop:disable Style/SlicingWithRange
-          @url_template = options.fetch(:url).gsub(':key', key_template)
           @stores = options.fetch(:stores).each_with_object({}) do |(store_id, config), stores|
             stores[store_id.to_sym] = ::Aws::S3::Resource.new(client: ::Aws::S3::Client.new(
               config.slice(:access_key_id, :secret_access_key, :endpoint, :region)
@@ -42,6 +41,9 @@ module Paperclip
           end
           @store_ids = options[:stores].keys.map(&:to_sym)
           @main_store_id = store_ids.first
+          @url_template = options.fetch(:url)
+            .gsub(':key', key_template)
+            .gsub(':bucket_url', store_by(main_store_id).url)
           @download_by_url = options[:download_by_url]
           @upload_options = options[:upload_options] || {}
         end
