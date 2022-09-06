@@ -15,8 +15,8 @@ module Paperclip
           args = [
             instance.class.name,
             instance.id,
-            attachment.class.attachment_name,
-            store_id
+            attachment.class.attachment_name.to_s,
+            store_id.to_s # args must be serializable to json without type changes thus strings only
           ]
 
           delay.present? ? perform_in(delay, *args) : perform_async(*args)
