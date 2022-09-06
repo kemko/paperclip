@@ -69,6 +69,8 @@ module Paperclip
       end
 
       def key(style = default_style)
+        return if original_filename.nil?
+
         interpolate(self.class.key_template, style)
       end
 
