@@ -21,6 +21,7 @@ module Paperclip
       when "csv", "xml", "css", "js" then "text/#{type}"
       when "liquid"                  then "text/x-liquid"
       when 'svg'                     then 'image/svg+xml'
+      when 'xls'                     then 'application/vnd.ms-excel'
       else "application/x-#{type}"
       end
     end
