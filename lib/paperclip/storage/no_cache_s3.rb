@@ -135,6 +135,8 @@ module Paperclip
       def flush_writes # :nodoc:
         return if queued_for_write.empty?
 
+        # если есть, что записывать (queued_for_write), значит, данные устарели
+        instance[self.class.synced_field_name(self.class.main_store_id)] = false
         sync_to(self.class.main_store_id, queued_for_write)
         unless delay_processing? && dirty?
           (self.class.store_ids - [self.class.main_store_id]).each { |store_id| enqueue_sync_job(store_id) }
