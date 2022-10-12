@@ -168,6 +168,8 @@ module Paperclip
         styles_to_upload = subject_to_post_process? ? self.class.all_styles : [:original]
         files ||= styles_to_upload.each_with_object({}) do |style, result|
           file = to_file(style, self.class.main_store_id)
+          old_path = Rails.public_path.join(key(:original))
+          file ||= File.open(old_path) if File.exist?(old_path)
           # For easier monitoring
           unless file
             raise "Missing files in #{self.class.main_store_id} for #{instance.class.name}:#{instance.id}:#{style}"
