@@ -36,7 +36,7 @@ module Paperclip
           @key_template = key_template[1..-1] if key_template.start_with?('/') # rubocop:disable Style/SlicingWithRange
           @stores = options.fetch(:stores).each_with_object({}) do |(store_id, config), stores|
             stores[store_id.to_sym] = ::Aws::S3::Resource.new(client: ::Aws::S3::Client.new(
-              config.slice(:access_key_id, :secret_access_key, :endpoint, :region)
+              config.slice(:access_key_id, :secret_access_key, :endpoint, :region, :force_path_style)
             )).bucket(config[:bucket])
           end
           @store_ids = options[:stores].keys.map(&:to_sym)
