@@ -276,7 +276,9 @@ module Paperclip
     end
 
     def to_file(style = default_style)
-      queued_for_write[style]
+      file = queued_for_write[style]
+      file&.rewind
+      file
     end
 
     def to_io(*args)

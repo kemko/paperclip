@@ -234,6 +234,7 @@ module Paperclip
         }.merge(self.class.upload_options)
         files.each do |style, file|
           path = key(style)
+          file.rewind
           log "Saving to #{store_id}:#{path}"
           store.put_object(common_options.merge(key: path, body: file))
         end
