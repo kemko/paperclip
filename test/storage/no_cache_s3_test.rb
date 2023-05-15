@@ -61,6 +61,7 @@ class NoCacheS3Test < Test::Unit::TestCase
       @store1_stub.expects(:put_object).once
       @store2_stub.expects(:put_object).never
       @instance.update!(avatar: stub_file('test.txt', 'qwe'))
+      @instance.run_callbacks(:commit)
       @instance.reload
       attachment = @instance.avatar
       assert_equal 'http://store.local/test.txt', attachment.url(:original, false)
@@ -74,6 +75,7 @@ class NoCacheS3Test < Test::Unit::TestCase
         @store1_stub.expects(:put_object).once
         @store2_stub.expects(:put_object).once
         @instance.update!(avatar: stub_file('test.txt', 'qwe'))
+        @instance.run_callbacks(:commit)
         @instance.reload
         attachment = @instance.avatar
         assert_equal 'http://store.local/test.txt', attachment.url(:original, false)
