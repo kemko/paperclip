@@ -220,7 +220,7 @@ module Paperclip
       attachment_definitions[name] = Attachment.build_class(name, options)
       const_set("#{name}_attachment".camelize, attachment_definitions[name])
 
-      after_save :save_attached_files
+      after_commit :save_attached_files
       after_commit :destroy_attached_files, on: :destroy
       after_commit :flush_attachment_jobs
 
@@ -315,8 +315,11 @@ module Paperclip
 
     def save_attached_files
       logger.info("[paperclip] Saving attachments.")
-      each_attachment do |_name, attachment|
+      each_attachment do |name, attachment|
         attachment.send(:save)
+        # переехало сюда из delayed_paperclip process_in_background. нужно чтобы порядок загрузки - обработки
+        # не поломало
+        enqueue_delayed_processing if attachment_definitions[name][:delayed].present?
       end
     end
 

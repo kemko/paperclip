@@ -183,7 +183,7 @@ module Paperclip
         # ignore deleted objects and skip callbacks
         return if instance.class.unscoped.where(id: instance.id).update_all(synced_field_name => true) != 1
 
-        instance.touch
+        instance.updated_at = Time.current if instance.respond_to?(:updated_at=)
         instance[synced_field_name] = true
       end
 

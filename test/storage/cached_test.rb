@@ -70,6 +70,7 @@ class CachedStorageTest < Test::Unit::TestCase
 
       should 'write to permanent stores and clear cache' do
         @instance.update!(avatar: stub_file('test.txt', 'qwe'))
+        @instance.run_callbacks(:commit)
         @instance.reload
         attachment = @instance.avatar
         key = attachment.key
