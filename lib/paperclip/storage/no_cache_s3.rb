@@ -134,7 +134,7 @@ module Paperclip
 
       def flush_writes # :nodoc:
         return if queued_for_write.empty?
-
+        return if instance.destroyed?
         # если есть, что записывать (queued_for_write), значит, данные устарели
         instance[self.class.synced_field_name(self.class.main_store_id)] = false
         sync_to(self.class.main_store_id, queued_for_write)
@@ -232,6 +232,7 @@ module Paperclip
           cache_control: "max-age=#{10.years.to_i}",
           acl: 'public-read'
         }.merge(self.class.upload_options)
+
         files.each do |style, file|
           path = key(style)
           file.rewind
