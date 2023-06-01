@@ -4,15 +4,17 @@ jobs:
   lint:
     name: Pronto lint
     runs-on: ubuntu-latest
+    env:
+      BUNDLE_ONLY: lint
     steps:
       - uses: actions/checkout@v2
       - run: git fetch --no-tags --prune --unshallow origin +refs/heads/*:refs/remotes/origin/*
       - name: Install ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '2.6'
+          ruby-version: '3.2'
           bundler-cache: true
-      - run: bundle exec pronto run -f github_status github_pr_review -c origin/master
+      - run: bundle exec pronto run -f text github_status github_pr_review -c origin/master
         env:
           PRONTO_GITHUB_ACCESS_TOKEN: ${{ github.token }}
           PRONTO_PULL_REQUEST_ID: ${{ github.event.pull_request.number }}
