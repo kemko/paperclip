@@ -220,6 +220,7 @@ module Paperclip
       attachment_definitions[name] = Attachment.build_class(name, options)
       const_set("#{name}_attachment".camelize, attachment_definitions[name])
 
+      # after_commit callback-и исполняются в обратном порядке их определения
       after_commit :flush_attachment_jobs
       after_commit :save_attached_files, on: %i[create update]
       after_commit :destroy_attached_files, on: :destroy
