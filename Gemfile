@@ -5,10 +5,8 @@ git_source(:github) { |repo_name| "https://github.com/#{repo_name}.git" }
 
 gemspec
 
-gem 'appraisal'
-
 gem 'fastimage'
-gem 'pg', '~> 1.1.4'
+gem 'pg'
 
 gem 'aws-sdk-s3'
 gem 'fog-local'
@@ -26,13 +24,17 @@ gem 'pry-byebug'
 
 gem 'addressable'
 
-group :lint do
-  gem 'rubocop', '0.81.0'
-  gem 'rubocop-rails', '2.5.2'
-  gem 'rubocop-rspec', '1.38.1'
-  gem 'rubocop-performance', '1.5.2'
+unless defined?(Appraisal)
+  gem 'appraisal'
 
-  gem 'pronto', '>= 0.11', require: false
-  gem 'pronto-brakeman', require: false
-  gem 'pronto-rubocop', require: false
+  group :lint do
+    gem 'rubocop', '~>0.81'
+    gem 'rubocop-rails'
+    gem 'rubocop-rspec'
+    gem 'rubocop-performance'
+
+    gem 'pronto', '>= 0.11', require: false
+    gem 'pronto-brakeman', require: false
+    gem 'pronto-rubocop', require: false
+  end
 end

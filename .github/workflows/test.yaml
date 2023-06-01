@@ -1,5 +1,7 @@
 name: Test
-on: [push]
+on:
+  - push
+  - pull_request
 jobs:
   runTests:
     runs-on: ubuntu-latest
@@ -7,22 +9,12 @@ jobs:
     strategy:
       matrix:
         include:
-          # EKAM
-          - ruby-version: 2.5.8
-            rails-version: 52
-          # InSales
-          - ruby-version: 2.6.6
-            rails-version: 52
-          - ruby-version: 2.6.6
+          - ruby-version: 2.7.8
             rails-version: 60
-          - ruby-version: 2.7.5
-            rails-version: 60
-          - ruby-version: 2.7.5
+          - ruby-version: 2.7.8
             rails-version: 61
-          - ruby-version: 2.7.5
-            rails-version: 70
           # EDGE
-          - ruby-version: 3.1.0
+          - ruby-version: 3.2.2
             rails-version: 70
 
     env:

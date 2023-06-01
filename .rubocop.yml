@@ -7,5 +7,5 @@ inherit_from:
   - https://raw.githubusercontent.com/insales/code_style/master/ruby/rubocop_rails.yml
 
 AllCops:
-  TargetRubyVersion: 2.6
-  TargetRailsVersion: 5.2
+  TargetRubyVersion: 2.7
+  TargetRailsVersion: 6.0
