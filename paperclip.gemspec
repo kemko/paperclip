@@ -8,7 +8,10 @@ Gem::Specification.new do |s|
   s.date = %q{2009-06-18}
   s.email = %q{jyurek@thoughtbot.com}
   s.extra_rdoc_files = ["README.rdoc"]
-  s.files = `git ls-files -z`.split("\x0").reject { |f| f.match(%r{^(test|gemfiles)/}) }
+  s.files = `git ls-files -z`.split("\x0").reject do |f|
+    f.start_with?('.') || f.match?(%r{^(test|gemfiles)/}) ||
+      f.match?(%r{docker-compose.yml|Appraisals|Gemfile|Rakefile})
+  end
   s.homepage = %q{http://www.thoughtbot.com/projects/paperclip}
   s.rdoc_options = ["--line-numbers", "--inline-source"]
   s.require_paths = ["lib"]

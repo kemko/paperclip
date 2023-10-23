@@ -2,7 +2,6 @@
 
 source "https://rubygems.org"
 
-gem "fastimage"
 gem "pg"
 gem "aws-sdk-s3"
 gem "fog-local"
@@ -14,6 +13,5 @@ gem "mocha"
 gem "thoughtbot-shoulda", ">= 2.9.0"
 gem "pry"
 gem "pry-byebug"
-gem "addressable"
 
 gemspec path: "../"
