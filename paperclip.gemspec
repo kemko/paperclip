@@ -16,7 +16,7 @@ Gem::Specification.new do |s|
   s.rubyforge_project = %q{paperclip}
   s.summary = %q{File attachments as attributes for ActiveRecord}
 
-  s.add_dependency 'activesupport', '< 7.1'
+  s.add_dependency 'activesupport', '< 7.2'
   s.add_dependency 'addressable'
   s.add_dependency 'fastimage'
 end
