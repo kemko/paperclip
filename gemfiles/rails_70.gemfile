@@ -2,18 +2,16 @@
 
 source "https://rubygems.org"
 
-gem "fastimage"
 gem "pg"
 gem "aws-sdk-s3"
 gem "fog-local"
 gem "delayed_paperclip", git: "https://github.com/insales/delayed_paperclip.git"
-gem "rails", "~>7.0.0"
+gem "rails", "~>7.0.8"
 gem "sidekiq"
 gem "test-unit"
 gem "mocha"
 gem "thoughtbot-shoulda", ">= 2.9.0"
 gem "pry"
 gem "pry-byebug"
-gem "addressable"
 
 gemspec path: "../"

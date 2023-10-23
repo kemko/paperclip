@@ -1,6 +1,8 @@
 require 'test_helper'
 
 class PluralCacheTest < Test::Unit::TestCase
+  class BigBox; end
+
   should 'cache pluralizations' do
     cache = Paperclip::Interpolations::PluralCache.new
     symbol = :box
@@ -11,7 +13,6 @@ class PluralCacheTest < Test::Unit::TestCase
   end
 
   should 'cache pluralizations and underscores' do
-    class BigBox ; end
     cache = Paperclip::Interpolations::PluralCache.new
     klass = BigBox
 
@@ -26,7 +27,6 @@ class PluralCacheTest < Test::Unit::TestCase
   end
 
   should 'pluralize and underscore words' do
-    class BigBox ; end
     cache = Paperclip::Interpolations::PluralCache.new
     klass = BigBox
     assert_equal 'plural_cache_test/big_boxes', cache.underscore_and_pluralize_class(klass)

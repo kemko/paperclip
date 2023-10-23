@@ -5,7 +5,6 @@ git_source(:github) { |repo_name| "https://github.com/#{repo_name}.git" }
 
 gemspec
 
-gem 'fastimage'
 gem 'pg'
 
 gem 'aws-sdk-s3'
@@ -21,8 +20,6 @@ gem 'thoughtbot-shoulda', '>= 2.9.0'
 
 gem 'pry'
 gem 'pry-byebug'
-
-gem 'addressable'
 
 unless defined?(Appraisal)
   gem 'appraisal'

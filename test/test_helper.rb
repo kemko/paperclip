@@ -34,19 +34,19 @@ ActiveRecord::Base.try(:raise_in_transactional_callbacks=, true)
 ActiveRecord::Base.establish_connection(config['test'])
 
 def reset_class class_name
-  ActiveRecord::Base.send(:include, Paperclip)
+  ActiveRecord::Base.include Paperclip
   Object.send(:remove_const, class_name) rescue nil
   klass = Object.const_set(class_name, Class.new(ActiveRecord::Base))
   klass.class_eval{ include Paperclip }
   klass
 end
 
-def reset_table table_name, &block
+def reset_table(_table_name, &block)
   block ||= ->(_) { true }
   ActiveRecord::Base.connection.create_table :dummies, force: true, &block
 end
 
-def modify_table table_name, &block
+def modify_table(_table_name, &block)
   ActiveRecord::Base.connection.change_table :dummies, &block
 end
 
@@ -62,7 +62,7 @@ def rebuild_model options = {}
 end
 
 def rebuild_class(options = {})
-  ActiveRecord::Base.send(:include, Paperclip)
+  ActiveRecord::Base.include Paperclip
   begin
     Object.send(:remove_const, "Dummy")
   rescue StandardError
