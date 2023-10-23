@@ -19,7 +19,7 @@ Rake::TestTask.new(:test) do |t|
 end
 
 desc 'Start an IRB session with all necessary files required.'
-task :shell do |t|
+task :shell do
   chdir File.dirname(__FILE__)
   exec 'irb -I lib/ -I lib/paperclip -r rubygems -r active_record -r tempfile -r init'
 end
@@ -39,7 +39,7 @@ task :sync_docs => 'rdoc' do
 end
 
 desc 'Clean up files.'
-task :clean do |t|
+task :clean do
   FileUtils.rm_rf "doc"
   FileUtils.rm_rf "tmp"
   FileUtils.rm_rf "pkg"

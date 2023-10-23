@@ -153,9 +153,10 @@ class AttachmentTest < Test::Unit::TestCase
     end
   end
 
+  class Paperclip::Test < Paperclip::Processor; end
+
   context "An attachment with multiple processors" do
     setup do
-      class Paperclip::Test < Paperclip::Processor; end
       @style_params = { :once => {:one => 1, :two => 2} }
       rebuild_model :processors => [:thumbnail, :test], :styles => @style_params
       @dummy = Dummy.new
@@ -345,7 +346,7 @@ class AttachmentTest < Test::Unit::TestCase
                [:small, 32, 32, "JPEG"]].each do |style|
                 cmd = %Q[identify -format "%w %h %b %m" "#{@attachment.path(style.first)}"]
                 out = `#{cmd}`
-                width, height, size, format = out.split(" ")
+                width, height, _size, format = out.split(" ")
                 assert_equal style[1].to_s, width.to_s
                 assert_equal style[2].to_s, height.to_s
                 assert_equal style[3].to_s, format.to_s

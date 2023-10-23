@@ -6,9 +6,9 @@ class IntegrationTest < Test::Unit::TestCase
   context "Many models at once" do
     setup do
       rebuild_model
-      @file      = File.new(File.join(FIXTURES_DIR, "5k.png"), 'rb')
-      300.times do |i|
-        Dummy.create! :avatar => @file
+      @file = File.new(File.join(FIXTURES_DIR, "5k.png"), 'rb')
+      300.times do
+        Dummy.create! avatar: @file
       end
     end
 
@@ -33,7 +33,7 @@ class IntegrationTest < Test::Unit::TestCase
     teardown { @file.close }
 
     should "create its thumbnails properly" do
-      assert_match /\b50x50\b/, `identify "#{@dummy.avatar.path(:thumb)}"`
+      assert_match(/\b50x50\b/, `identify "#{@dummy.avatar.path(:thumb)}"`)
     end
   end
 

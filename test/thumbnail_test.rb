@@ -73,7 +73,7 @@ class ThumbnailTest < Test::Unit::TestCase
 
       should "create the thumbnail when sent #make" do
         dst = @thumb.make
-        assert_match /100x50/, `identify "#{dst.path}"`
+        assert_match(/100x50/, `identify "#{dst.path}"`)
       end
     end
 
@@ -98,7 +98,7 @@ class ThumbnailTest < Test::Unit::TestCase
 
       should "create the thumbnail when sent #make" do
         dst = @thumb.make
-        assert_match /100x50/, `identify "#{dst.path}"`
+        assert_match(/100x50/, `identify "#{dst.path}"`)
       end
 
       context "redefined to have bad convert_options setting" do
