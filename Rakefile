@@ -3,7 +3,6 @@ require 'rake/testtask'
 require 'rdoc/task'
 
 $LOAD_PATH << File.join(File.dirname(__FILE__), 'lib')
-require 'paperclip'
 
 import 'lib/tasks/paperclip_tasks.rake'
 
@@ -19,7 +18,7 @@ Rake::TestTask.new(:test) do |t|
 end
 
 desc 'Start an IRB session with all necessary files required.'
-task :shell do
+task :shell => :load_paperclip do
   chdir File.dirname(__FILE__)
   exec 'irb -I lib/ -I lib/paperclip -r rubygems -r active_record -r tempfile -r init'
 end
@@ -62,23 +61,28 @@ exclude_file_globs = ["test/s3.yml",
                       "test/pkg/*",
                       "test/tmp",
                       "test/tmp/*"]
-spec = Gem::Specification.new do |s|
-  s.name              = "paperclip"
-  s.version           = Paperclip::VERSION
-  s.author            = "Jon Yurek"
-  s.email             = "jyurek@thoughtbot.com"
-  s.homepage          = "http://www.thoughtbot.com/projects/paperclip"
-  s.platform          = Gem::Platform::RUBY
-  s.summary           = "File attachments as attributes for ActiveRecord"
-  s.files             = FileList[include_file_globs].to_a - FileList[exclude_file_globs].to_a
-  s.require_path      = "lib"
-  s.test_files        = FileList["test/**/test_*.rb"].to_a
-  s.rubyforge_project = "paperclip"
-  s.extra_rdoc_files  = FileList["README*"].to_a
-  s.rdoc_options << '--line-numbers' << '--inline-source'
-  s.requirements << "ImageMagick"
-  s.add_development_dependency 'thoughtbot-shoulda'
-  s.add_development_dependency 'mocha'
+
+def spec
+  # TODO: require 'paperclip/version'
+  require 'paperclip'
+  Gem::Specification.new do |s|
+    s.name              = "paperclip"
+    s.version           = Paperclip::VERSION
+    s.author            = "Jon Yurek"
+    s.email             = "jyurek@thoughtbot.com"
+    s.homepage          = "http://www.thoughtbot.com/projects/paperclip"
+    s.platform          = Gem::Platform::RUBY
+    s.summary           = "File attachments as attributes for ActiveRecord"
+    s.files             = FileList[include_file_globs].to_a - FileList[exclude_file_globs].to_a
+    s.require_path      = "lib"
+    s.test_files        = FileList["test/**/test_*.rb"].to_a
+    s.rubyforge_project = "paperclip"
+    s.extra_rdoc_files  = FileList["README*"].to_a
+    s.rdoc_options << '--line-numbers' << '--inline-source'
+    s.requirements << "ImageMagick"
+    s.add_development_dependency 'thoughtbot-shoulda'
+    s.add_development_dependency 'mocha'
+  end
 end
 
 desc "Print a list of the files to be put into the gem"

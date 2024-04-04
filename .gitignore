@@ -4,3 +4,4 @@ gemfiles/*.lock
 gemfiles/.bundle/
 tmp/
 .rubocop-*
+/coverage/

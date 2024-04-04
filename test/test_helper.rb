@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require 'rubygems'
+require 'bundler/setup'
+
 require 'test/unit'
 require 'shoulda'
 require 'mocha/test_unit'
@@ -13,6 +15,24 @@ require 'active_record'
 require 'active_support'
 require 'rails'
 
+if ENV['COVERAGE']
+  require 'simplecov'
+
+  SimpleCov.external_at_exit = true
+  Test::Unit.at_exit do
+    SimpleCov.at_exit_behavior
+  end
+  SimpleCov.command_name 'test:units'
+  SimpleCov.start do
+    load_profile "test_frameworks"
+
+    add_group "Storage", "lib/paperclip/storage/"
+    add_group "Libraries", "lib/"
+
+    track_files "{lib}/**/*.rb"
+  end
+end
+
 ROOT = File.expand_path('../', __dir__)
 
 ENV['RAILS_ENV'] = 'test'
@@ -20,9 +40,10 @@ class TestRailsApp < Rails::Application; end
 Rails.application.config.root = "#{ROOT}/tmp/rails"
 
 $LOAD_PATH << File.join(ROOT, 'lib')
-$LOAD_PATH << File.join(ROOT, 'lib', 'paperclip')
+$LOAD_PATH << File.join(ROOT, 'lib/paperclip') # ??
 
-require File.join(ROOT, 'lib', 'paperclip.rb')
+require 'paperclip'
+# require File.join(ROOT, 'lib/paperclip.rb')
 
 require 'shoulda_macros/paperclip'
 

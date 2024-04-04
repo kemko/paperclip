@@ -15,6 +15,7 @@ gem 'rails'
 gem 'sidekiq'
 
 gem 'test-unit'
+gem 'simplecov', require: false
 gem 'mocha'
 gem 'thoughtbot-shoulda', '>= 2.9.0'
 
