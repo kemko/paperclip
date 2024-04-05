@@ -4,6 +4,7 @@ require 'test_helper'
 require 'sidekiq'
 require 'sidekiq/testing'
 require 'aws-sdk-s3'
+require 'base64'
 
 require 'delayed_paperclip'
 DelayedPaperclip::Railtie.insert
@@ -29,6 +30,12 @@ class NoCacheS3Test < Test::Unit::TestCase
       stores: {
         store_1: { access_key_id: '123', secret_access_key: '123', region: 'r', bucket: 'buck' },
         store_2: { access_key_id: '456', secret_access_key: '456', region: 'r', bucket: 'buck' }
+      },
+      styles: {
+        original: { geometry: '4x4>', processors: %i[thumbnail optimizer] },
+        medium: '3x3',
+        small: { geometry: '2x2', processors: [:recursive_thumbnail], thumbnail: :medium },
+        micro: { geometry: '1x1', processors: [:recursive_thumbnail], thumbnail: :small }
       }
     )
     modify_table(:dummies) do |table|
@@ -36,12 +43,14 @@ class NoCacheS3Test < Test::Unit::TestCase
       table.boolean :avatar_synced_to_store_2, null: false, default: false
     end
     @instance = Dummy.create
-    @store1_stub = mock
-    @store2_stub = mock
+    @store1_stub = mock("store1")
+    @store2_stub = mock("store2")
     @store1_stub.stubs(:url).returns('http://store.local')
     @store2_stub.stubs(:url).returns('http://store.local')
     @instance.avatar.class.stubs(:stores).returns({ store_1: @store1_stub, store_2: @store2_stub })
-    Dummy::AvatarAttachment.any_instance.stubs(:to_file).returns(stub_file('text.txt', 'qwe'))
+    Dummy::AvatarAttachment.any_instance.stubs(:to_file).returns(
+      stub_file('pixel.gif', Base64.decode64('R0lGODlhAQABAIABAP///wAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw'))
+    )
   end
 
   teardown { TEST_ROOT.rmtree if TEST_ROOT.exist? }
@@ -80,6 +89,22 @@ class NoCacheS3Test < Test::Unit::TestCase
         attachment = @instance.avatar
         assert_equal 'http://store.local/test.txt', attachment.url(:original, false)
       end
+    end
+  end
+
+  context "reprocess" do
+    setup do
+      Sidekiq::Testing.fake!
+      @instance.update_columns avatar_file_name: 'foo.gif', avatar_content_type: 'image/gif'
+    end
+
+    should "delete tmp files" do
+      @store1_stub.expects(:put_object).times(1 + (@instance.avatar.options[:styles].keys - [:original]).size)
+      # Paperclip.expects(:log).with { puts "Log: #{_1}"; true }.at_least(3)
+      existing_files = Dir.children(Dir.tmpdir)
+      @instance.avatar.reprocess!
+      leftover_files = (Dir.children(Dir.tmpdir) - existing_files).sort
+      assert_empty(leftover_files)
     end
   end
 

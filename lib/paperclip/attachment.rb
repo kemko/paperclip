@@ -314,7 +314,7 @@ module Paperclip
     # thumbnails forcefully, by reobtaining the original file and going through
     # the post-process again.
     def reprocess!
-      new_original = Tempfile.new("paperclip-reprocess-#{instance.id}-")
+      new_original = Tempfile.new("paperclip-reprocess-#{instance.class.table_name}-#{instance.id}-")
       new_original.binmode
       old_original = to_file(:original)
       new_original.write( old_original.read )
@@ -431,7 +431,11 @@ module Paperclip
         begin
           raise RuntimeError.new("Style #{name} has no processors defined.") if args[:processors].blank?
           queued_for_write[name] = args[:processors].inject(queued_for_write[:original]) do |file, processor|
-            Paperclip.processor(processor).make(file, args, self)
+            Paperclip.processor(processor).make(file, args, self).tap do |new_file|
+              # closing intermediary tempfiles
+              file.close! if new_file != file && file.is_a?(Tempfile) &&
+                             (name == :original || !queued_for_write.value?(file))
+            end
           end
         rescue PaperclipError => e
           log("An error was received while processing: #{e.inspect}")

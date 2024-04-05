@@ -46,7 +46,7 @@ module Paperclip
     def make
       src = @file
       ext = @format.present? ? ".#{@format}" : nil
-      dst = Tempfile.new([@basename, ext])
+      dst = Tempfile.new(["#{@basename}-thumb-", ext])
       dst.binmode
 
       command = <<-end_command

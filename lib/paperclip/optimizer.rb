@@ -3,12 +3,10 @@ require 'open3'
 module Paperclip
   class Optimizer < Processor
     def make
-      optimized_file_path  = optimize(@file)
-      if optimized_file_path && File.exist?(optimized_file_path)
-        return File.open(optimized_file_path)
-      else
-        return @file
-      end
+      optimized_file = optimize(@file)
+      return @file unless optimized_file && optimized_file.size > 0 # rubocop:disable Style/ZeroLengthPredicate
+
+      optimized_file
     end
 
     def real_content_type
@@ -18,9 +16,9 @@ module Paperclip
     def optimize(_file)
       # TODO: use the arg?
       src = @file.path
-      dst = "#{src}-#{SecureRandom.hex}"
+      dst_file = Tempfile.new(["#{File.basename(src)}-optim", File.extname(src)])
       src_shell = src.shellescape
-      dst_shell = dst.shellescape
+      dst_shell = dst_file.path.shellescape
       cmd = case real_content_type
             when 'image/jpeg', 'image/jpg', 'image/pjpeg'
               "cp #{src_shell} #{dst_shell} && jpegoptim --all-progressive -q --strip-com --strip-exif --strip-iptc -- #{dst_shell}"
@@ -32,7 +30,11 @@ module Paperclip
               return
             end
       run_and_verify!(cmd)
-      dst
+      dst_file
+    rescue StandardError => e
+      dst_file.close!
+      Paperclip.log("Error: cannot optimize: #{e}")
+      nil
     end
 
     private

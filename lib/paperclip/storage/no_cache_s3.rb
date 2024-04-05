@@ -142,9 +142,8 @@ module Paperclip
           (self.class.store_ids - [self.class.main_store_id]).each { |store_id| enqueue_sync_job(store_id) }
         end
         # HACK: Iostream пишет в tempfile, и он нигде не закрывается. Будем закрывать хотя бы тут
-        if queued_for_write[:original].is_a?(Tempfile)
-          queued_for_write[:original].close
-          queued_for_write[:original].unlink
+        queued_for_write.each_value do |file|
+          file.is_a?(Tempfile) && file.close!
         end
         queued_for_write.clear
       end
