@@ -9,6 +9,7 @@ gem "delayed_paperclip", git: "https://github.com/insales/delayed_paperclip.git"
 gem "rails", "~>7.0.8"
 gem "sidekiq"
 gem "test-unit"
+gem "simplecov", require: false
 gem "mocha"
 gem "thoughtbot-shoulda", ">= 2.9.0"
 gem "pry"
