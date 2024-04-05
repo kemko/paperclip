@@ -7,7 +7,7 @@ module Paperclip
       # генерим файл из оригинального
       source_style = options[:thumbnail] || :original
       # TODO: вообще queued_for_write[source_style] место в NoCacheS3#to_file
-      f = attachment&.queued_for_write&.dig(source_style)&.tap(&:rewind)
+      f = attachment&.queued_for_write&.dig(source_style)&.tap(&:flush)&.tap(&:rewind)
       # TODO: и надо сносить файл если все же была загрузка
       f ||= attachment.to_file(source_style) rescue file # rubocop:disable Style/RescueModifier
       super(f, options, attachment)

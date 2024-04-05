@@ -317,11 +317,17 @@ module Paperclip
       new_original = Tempfile.new("paperclip-reprocess-#{instance.class.table_name}-#{instance.id}-")
       new_original.binmode
       old_original = to_file(:original)
+      # по идее копирование нужно не всегда
       new_original.write( old_original.read )
+      new_original.flush
       new_original.rewind
       @queued_for_write = { :original => new_original }
       post_process
-      old_original.close if old_original.respond_to?(:close)
+      if old_original.respond_to?(:close!)
+        old_original.close!
+      elsif old_original.respond_to?(:close)
+        old_original.close
+      end
       save
     end
 

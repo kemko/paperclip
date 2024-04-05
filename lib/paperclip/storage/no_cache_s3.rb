@@ -143,7 +143,7 @@ module Paperclip
         end
         # HACK: Iostream пишет в tempfile, и он нигде не закрывается. Будем закрывать хотя бы тут
         queued_for_write.each_value do |file|
-          file.is_a?(Tempfile) && file.close!
+          file.respond_to?(:close!) && file.close!
         end
         queued_for_write.clear
       end
@@ -233,6 +233,7 @@ module Paperclip
         }.merge(self.class.upload_options)
         files.each do |style, file|
           path = key(style)
+          file.flush
           file.rewind
           log "Saving to #{store_id}:#{path}"
           store.put_object(common_options.merge(key: path, body: file))
