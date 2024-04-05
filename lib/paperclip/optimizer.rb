@@ -17,6 +17,7 @@ module Paperclip
       # TODO: use the arg?
       src = @file.path
       dst_file = Tempfile.new(["#{File.basename(src)}-optim", File.extname(src)])
+      dst_file.binmode
       src_shell = src.shellescape
       dst_shell = dst_file.path.shellescape
       cmd = case real_content_type
