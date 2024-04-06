@@ -1,16 +1,21 @@
+# frozen_string_literal: true
+
 module Paperclip
   class RecursiveThumbnail < Thumbnail
-    def initialize file, options = {}, attachment = nil
-
-      # если по каким-то причинам не сформировался файл
-      # для прыдущего размера не кидаем ексепшен и
-      # генерим файл из оригинального
+    def initialize(file, options = {}, attachment = nil)
       source_style = options[:thumbnail] || :original
-      # TODO: вообще queued_for_write[source_style] место в NoCacheS3#to_file
-      f = attachment&.queued_for_write&.dig(source_style)&.tap(&:flush)&.tap(&:rewind)
-      # TODO: и надо сносить файл если все же была загрузка
-      f ||= attachment.to_file(source_style) rescue file # rubocop:disable Style/RescueModifier
-      super(f, options, attachment)
+      # если по каким-то причинам не сформировался файл прыдущего размера - генерим из оригинального
+      source_file = begin
+                      attachment.to_file(source_style)
+                    rescue
+                      Paperclip.log "Using original for #{options}"
+                      file
+                    end
+      super(source_file, options, attachment)
+    ensure
+      if source_file != file && source_file.respond_to?(:close!) && !attachment&.queued_for_write&.value?(source_file)
+        source_file.close!
+      end
     end
   end
 end
