@@ -316,7 +316,7 @@ module Paperclip
     def reprocess!
       new_original = Tempfile.new("paperclip-reprocess-#{instance.class.table_name}-#{instance.id}-")
       new_original.binmode
-      old_original = to_file(:original)
+      old_original = to_file(:original) || raise("no original in store")
       # по идее копирование нужно не всегда
       new_original.write( old_original.read )
       new_original.flush
@@ -439,7 +439,7 @@ module Paperclip
           queued_for_write[name] = args[:processors].inject(queued_for_write[:original]) do |file, processor|
             Paperclip.processor(processor).make(file, args, self).tap do |new_file|
               # closing intermediary tempfiles
-              file.close! if new_file != file && file.is_a?(Tempfile) &&
+              file.close! if new_file != file && file.respond_to?(:close!) &&
                              (name == :original || !queued_for_write.value?(file))
             end
           end
