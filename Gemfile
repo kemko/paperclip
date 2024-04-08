@@ -26,7 +26,7 @@ unless defined?(Appraisal)
   gem 'appraisal'
 
   group :lint do
-    gem 'rubocop', '~>0.81'
+    gem 'rubocop'
     gem 'rubocop-rails'
     gem 'rubocop-rspec'
     gem 'rubocop-performance'
