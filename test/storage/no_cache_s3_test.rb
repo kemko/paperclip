@@ -11,10 +11,6 @@ DelayedPaperclip::Railtie.insert
 
 # rubocop:disable Naming/VariableNumber
 
-class FakeModel
-  attr_accessor :synced_to_store_1, :synced_to_store_2
-end
-
 class NoCacheS3Test < Test::Unit::TestCase
   TEST_ROOT = Pathname(__dir__).join('test')
 
@@ -25,17 +21,25 @@ class NoCacheS3Test < Test::Unit::TestCase
   setup do
     rebuild_model(
       storage: :no_cache_s3,
-      key: ':filename',
+      key: "dummy_imgs/:id/:style-:filename",
       url: 'http://store.local/:key',
       stores: {
         store_1: { access_key_id: '123', secret_access_key: '123', region: 'r', bucket: 'buck' },
         store_2: { access_key_id: '456', secret_access_key: '456', region: 'r', bucket: 'buck' }
       },
+      # styles: {
+      #   original: { geometry: '4x4>', processors: %i[thumbnail optimizer] }, # '4x4>' to limit size
+      #   medium: '3x3',
+      #   small: { geometry: '2x2', processors: [:recursive_thumbnail], thumbnail: :medium },
+      #   micro: { geometry: '1x1', processors: [:recursive_thumbnail], thumbnail: :small }
+      # }
       styles: {
-        original: { geometry: '4x4>', processors: %i[thumbnail optimizer] },
-        medium: '3x3',
-        small: { geometry: '2x2', processors: [:recursive_thumbnail], thumbnail: :medium },
-        micro: { geometry: '1x1', processors: [:recursive_thumbnail], thumbnail: :small }
+        original: { geometry: '2048x2048>', processors: %i[thumbnail optimizer] },
+        large: '480x480',
+        medium: '240x240',
+        compact: { geometry: '160x160', processors: [:recursive_thumbnail], thumbnail: :medium },
+        thumb: { geometry: '100x100', processors: [:recursive_thumbnail], thumbnail: :compact },
+        micro: { geometry: '48x48',   processors: [:recursive_thumbnail], thumbnail: :thumb }
       }
     )
     modify_table(:dummies) do |table|
@@ -48,15 +52,16 @@ class NoCacheS3Test < Test::Unit::TestCase
     @store1_stub.stubs(:url).returns('http://store.local')
     @store2_stub.stubs(:url).returns('http://store.local')
     @instance.avatar.class.stubs(:stores).returns({ store_1: @store1_stub, store_2: @store2_stub })
-    Dummy::AvatarAttachment.any_instance.stubs(:to_file).returns(
-      stub_file('pixel.gif', Base64.decode64('R0lGODlhAQABAIABAP///wAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw'))
-    )
+    @gif_pixel = Base64.decode64('R0lGODlhAQABAIABAP///wAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw')
   end
 
   teardown { TEST_ROOT.rmtree if TEST_ROOT.exist? }
 
   context 'assigning file' do
-    setup { Sidekiq::Testing.fake! }
+    setup do
+      Sidekiq::Testing.fake!
+      Dummy::AvatarAttachment.any_instance.stubs(:to_file).returns(stub_file('pixel.gif', @gif_pixel))
+    end
 
     should 'set synced_fields to false' do
       @instance.avatar_synced_to_store_1 = true
@@ -73,7 +78,7 @@ class NoCacheS3Test < Test::Unit::TestCase
       @instance.run_callbacks(:commit)
       @instance.reload
       attachment = @instance.avatar
-      assert_equal 'http://store.local/test.txt', attachment.url(:original, false)
+      assert_equal 'http://store.local/dummy_imgs/1/original-test.txt', attachment.url(:original, false)
     end
 
     context 'with inline jobs' do
@@ -87,26 +92,60 @@ class NoCacheS3Test < Test::Unit::TestCase
         @instance.run_callbacks(:commit)
         @instance.reload
         attachment = @instance.avatar
-        assert_equal 'http://store.local/test.txt', attachment.url(:original, false)
+        assert_equal 'http://store.local/dummy_imgs/1/original-test.txt', attachment.url(:original, false)
       end
     end
+  end
+
+  def assert_no_leftover_tmp
+    existing_files = Dir.children(Dir.tmpdir)
+    yield
+    leftover_files = (Dir.children(Dir.tmpdir) - existing_files).sort
+    assert_empty(leftover_files)
   end
 
   context "reprocess" do
     setup do
       Sidekiq::Testing.fake!
-      @instance.update_columns avatar_file_name: 'foo.gif', avatar_content_type: 'image/gif'
+      Dummy::AvatarAttachment.any_instance.stubs(:download_from_store).returns(stub_file('pixel.gif', @gif_pixel))
+      @instance.update_columns avatar_file_name: 'foo.gif', avatar_content_type: 'image/gif',
+                               avatar_synced_to_store_1: true
     end
 
     should "delete tmp files" do
       @store1_stub.expects(:put_object).times(1 + (@instance.avatar.options[:styles].keys - [:original]).size)
       # Paperclip.expects(:log).with { puts "Log: #{_1}"; true }.at_least(3)
-      existing_files = Dir.children(Dir.tmpdir)
-      @instance.avatar.reprocess!
-      leftover_files = (Dir.children(Dir.tmpdir) - existing_files).sort
-      assert_empty(leftover_files)
+      assert_no_leftover_tmp { @instance.avatar.reprocess! }
     end
   end
+
+  context "with delayed_paperclip process_in_background" do # rubocop:disable Style/MultilineIfModifier
+    setup do
+      Dummy.process_in_background(:avatar)
+      Sidekiq::Testing.fake!
+      Sidekiq::Queues.clear_all
+
+      # local minio
+      bucket = ::Aws::S3::Resource.new(client: ::Aws::S3::Client.new(
+        access_key_id: 'test', secret_access_key: 'testpassword',
+        endpoint: 'http://localhost:9002', region: 'laplandia', force_path_style: true
+      )).bucket("bucketname")
+      @instance.avatar.class.stubs(:stores).returns({ store_1: bucket })
+    end
+
+    should "add job and process" do
+      # @store1_stub.expects(:put_object).once
+      # @store2_stub.expects(:put_object).never
+      assert_no_leftover_tmp do
+        @instance.update!(avatar: stub_file('pixel.gif', @gif_pixel))
+        # @instance.update!(avatar: File.open('sample_notebook_1.jpg'))
+      end
+      assert_equal(1, DelayedPaperclip::Jobs::Sidekiq.jobs.size)
+
+      @instance = Dummy.find(@instance.id)
+      assert_no_leftover_tmp { DelayedPaperclip::Jobs::Sidekiq.perform_one }
+    end
+  end unless ENV['CI']
 
   context 'generating presigned_url' do
     setup do
