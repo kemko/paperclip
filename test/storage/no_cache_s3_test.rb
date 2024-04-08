@@ -108,7 +108,8 @@ class NoCacheS3Test < Test::Unit::TestCase
     setup do
       Sidekiq::Testing.fake!
       Dummy::AvatarAttachment.any_instance.stubs(:download_from_store).returns(stub_file('pixel.gif', @gif_pixel))
-      @instance.update_columns avatar_file_name: 'foo.gif', avatar_content_type: 'image/gif', avatar_synced_to_store_1: true
+      @instance.update_columns avatar_file_name: 'foo.gif', avatar_content_type: 'image/gif',
+                               avatar_synced_to_store_1: true
     end
 
     should "delete tmp files" do
@@ -118,7 +119,7 @@ class NoCacheS3Test < Test::Unit::TestCase
     end
   end
 
-  context "with delayed_paperclip process_in_background" do
+  context "with delayed_paperclip process_in_background" do # rubocop:disable Style/MultilineIfModifier
     setup do
       Dummy.process_in_background(:avatar)
       Sidekiq::Testing.fake!
@@ -129,7 +130,7 @@ class NoCacheS3Test < Test::Unit::TestCase
         access_key_id: 'test', secret_access_key: 'testpassword',
         endpoint: 'http://localhost:9002', region: 'laplandia', force_path_style: true
       )).bucket("bucketname")
-      @instance.avatar.class.stubs(:stores).returns({ store_1: bucket })      
+      @instance.avatar.class.stubs(:stores).returns({ store_1: bucket })
     end
 
     should "add job and process" do
