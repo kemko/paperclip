@@ -10,3 +10,18 @@ services:
       POSTGRES_HOST_AUTH_METHOD: trust
     ports:
       - 5432:5432
+
+  minio:
+    # image: bitnami/minio:2024.3.30 # fs backend removed, xl2 only
+    image: bitnami/minio:2022.10.29
+    ports:
+      - '9002:9000'
+      - '9003:9001'
+    # volumes:
+      # - './tmp/minio:/bitnami/minio/data:rw'
+      # - './tmp/minio:/data:rw'
+    environment:
+      - MINIO_DEFAULT_BUCKETS=bucketname
+      - MINIO_ROOT_USER=test
+      - MINIO_ROOT_PASSWORD=testpassword
+      - MINIO_STORAGE_USE_HTTPS=false

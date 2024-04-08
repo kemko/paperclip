@@ -170,13 +170,9 @@ module Paperclip
         return true if instance.public_send(synced_field_name)
 
         styles_to_upload = subject_to_post_process? ? self.class.all_styles : [:original]
-        files ||= styles_to_upload.each_with_object({}) do |style, result|
-          file = to_file(style, self.class.main_store_id)
-          # For easier monitoring
-          unless file
-            raise "Missing files in #{self.class.main_store_id} for #{instance.class.name}:#{instance.id}:#{style}"
-          end
-          result[style] = file
+        files ||= styles_to_upload.index_with do |style|
+          to_file(style, self.class.main_store_id) ||
+            raise("Missing files in #{self.class.main_store_id} for #{instance.class.name}:#{instance.id}:#{style}")
         end
         write_to_store(store_id, files)
         # ignore deleted objects and skip callbacks
