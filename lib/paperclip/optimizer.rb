@@ -3,10 +3,7 @@ require 'open3'
 module Paperclip
   class Optimizer < Processor
     def make
-      optimized_file = optimize(@file)
-      return @file unless optimized_file && optimized_file.size > 0 # rubocop:disable Style/ZeroLengthPredicate
-
-      optimized_file
+      optimize(@file) || @file
     end
 
     def real_content_type
@@ -24,7 +21,7 @@ module Paperclip
             when 'image/jpeg', 'image/jpg', 'image/pjpeg'
               # NB: --stdout не работает, там бывают пустые файлы если оно решило ничего не делать
               # нельзя `cp`, надо чтобы открытый файл указывал куда надо, поэтому `cat>`
-              "cat #{src_shell} > #{dst_file} && jpegoptim --all-progressive -q --strip-com --strip-exif --strip-iptc --stdout -- #{dst_shell}"
+              "cat #{src_shell} > #{dst_file} && jpegoptim --all-progressive -q --strip-com --strip-exif --strip-iptc -- #{dst_shell}"
             when 'image/png', 'image/x-png'
               "pngcrush -rem alla -q #{src_shell} #{dst_shell}"
             when 'image/gif'
@@ -33,8 +30,13 @@ module Paperclip
               return
             end
       run_and_verify!(cmd)
+
+      if dst_file.size == 0 # rubocop:disable Style/ZeroLengthPredicate
+        dst_file.close!
+        return nil
+      end
+
       dst_file.tap(&:flush).tap(&:rewind)
-      dst_file
     rescue StandardError => e
       dst_file.close!
       Paperclip.log("Error: cannot optimize: #{e}")

@@ -436,14 +436,14 @@ module Paperclip
     end
 
     def post_process_styles #:nodoc:
+      old_original = queued_for_write[:original]
       styles.each do |name, args|
         begin
           raise RuntimeError.new("Style #{name} has no processors defined.") if args[:processors].blank?
           queued_for_write[name] = args[:processors].inject(queued_for_write[:original]) do |file, processor|
             Paperclip.processor(processor).make(file, args, self).tap do |new_file|
               # closing intermediary tempfiles
-              file.close! if new_file != file && file.respond_to?(:close!) &&
-                             (name == :original || !queued_for_write.value?(file))
+              file.close! if new_file != file && file.respond_to?(:close!) && !queued_for_write.value?(file)
             end
           end
         rescue PaperclipError => e
@@ -451,6 +451,7 @@ module Paperclip
           (errors[:processing] ||= []) << e.message if self.class.whiny
         end
       end
+      old_original.close! if old_original.respond_to?(:close!) && !queued_for_write.value?(old_original)
     end
 
     def interpolate pattern, style = default_style #:nodoc:
