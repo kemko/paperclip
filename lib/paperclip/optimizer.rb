@@ -22,6 +22,7 @@ module Paperclip
       dst_shell = dst_file.path.shellescape
       cmd = case real_content_type
             when 'image/jpeg', 'image/jpg', 'image/pjpeg'
+              # TODO: --stdout > #{dst_shell}
               "cp #{src_shell} #{dst_shell} && jpegoptim --all-progressive -q --strip-com --strip-exif --strip-iptc -- #{dst_shell}"
             when 'image/png', 'image/x-png'
               "pngcrush -rem alla -q #{src_shell} #{dst_shell}"

@@ -314,7 +314,10 @@ module Paperclip
     # thumbnails forcefully, by reobtaining the original file and going through
     # the post-process again.
     def reprocess!
-      new_original = Tempfile.new("paperclip-reprocess-#{instance.class.table_name}-#{instance.id}-")
+      new_original = Tempfile.new([
+        "paperclip-reprocess-#{instance.class.table_name}-#{instance.id}-",
+        File.extname(instance_read(:file_name))
+      ])
       new_original.binmode
       old_original = to_file(:original) || raise("no original in store")
       # по идее копирование нужно не всегда
