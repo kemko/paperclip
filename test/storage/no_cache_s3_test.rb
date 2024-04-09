@@ -117,6 +117,27 @@ class NoCacheS3Test < Test::Unit::TestCase
       # Paperclip.expects(:log).with { puts "Log: #{_1}"; true }.at_least(3)
       assert_no_leftover_tmp { @instance.avatar.reprocess! }
     end
+
+    context "with download_by_url" do
+      setup do
+        @instance.avatar.class.instance_variable_set(:@download_by_url, true)
+        @instance.avatar.stubs(:presigned_url).returns("http://example.com/some_file") # чтобы не стабать store.object.presigned_uri
+        require 'open-uri'
+        # правильнее было бы webmock притащить и сам запрос застабить, но ради одного теста жирновато
+        Net::HTTP.any_instance.stubs(:start).yields(nil)
+        resp = Net::HTTPSuccess.new(1.1, 200, 'ok')
+        str = @gif_pixel.dup
+        str.stubs(:clear) # чтобы не попортить вторым вызовом
+        # начиная с OpenURI::Buffer::StringMax open-uri генерит tempfile
+        resp.stubs(:read_body).multiple_yields(str, "\0" * OpenURI::Buffer::StringMax)
+        Net::HTTP.any_instance.stubs(:request).yields(resp)
+      end
+
+      should "delete tmp files" do
+        @store1_stub.expects(:put_object).times(1 + (@instance.avatar.options[:styles].keys - [:original]).size)
+        assert_no_leftover_tmp { @instance.avatar.reprocess! }
+      end
+    end
   end
 
   context "with delayed_paperclip process_in_background" do # rubocop:disable Style/MultilineIfModifier

@@ -101,7 +101,9 @@ module Paperclip
         return unless synced_to?(self.class.main_store_id)
 
         if self.class.download_by_url
-          create_tempfile(URI.parse(presigned_url(style)).open.read)
+          URI.parse(presigned_url(style)).open do |tempfile|
+            create_tempfile(tempfile.read)
+          end
         else
           download_from_store(self.class.main_store_id, style_key)
         end
