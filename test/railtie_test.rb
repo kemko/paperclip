@@ -5,7 +5,7 @@ require 'test_helper'
 class RailtieTest < Test::Unit::TestCase
   should "load processors" do
     FileUtils.mkdir_p('tmp/rails/lib/paperclip_processors')
-    File.write(Rails.root.join('lib/paperclip_processors/some_custom_processor.rb'), <<~RUBY)
+    Rails.root.join('lib/paperclip_processors/some_custom_processor.rb').write <<~RUBY
       class Paperclip::SomeCustomProcessor < Paperclip::Processor
       end
     RUBY

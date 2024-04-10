@@ -5,7 +5,7 @@ require 'test_helper'
 class OptimizerTest < Test::Unit::TestCase
   setup do
     @pixel_jpg = Base64.decode64(
-      "/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP#{'/'*86}wgALCAABAAEBAREA/8QAFBAB#{'A'*21}P/aAAgBAQABPxA"
+      "/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP#{'/' * 86}wgALCAABAAEBAREA/8QAFBAB#{'A' * 21}P/aAAgBAQABPxA"
     )
     @pixel_png = Base64.decode64(
       "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg"

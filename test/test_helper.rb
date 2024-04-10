@@ -100,8 +100,7 @@ def rebuild_class(options = {})
 end
 
 class FakeModel
-  def self.set_callback(...)
-  end
+  def self.set_callback(...); end
 
   include Paperclip
 

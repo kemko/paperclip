@@ -33,7 +33,7 @@ class ValidateAttachmentSizeMatcherTest < Test::Unit::TestCase
       end
 
       should "have messages" do
-        assert_equal "validate the size of attachment avatar", @matcher.description      
+        assert_equal "validate the size of attachment avatar", @matcher.description
         assert_equal "Attachment avatar must be between 256 and 1024 bytes", @matcher.failure_message
         assert_equal "Attachment avatar cannot be between 256 and 1024 bytes", @matcher.negative_failure_message
       end

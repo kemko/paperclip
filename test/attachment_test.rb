@@ -140,7 +140,11 @@ class AttachmentTest < Test::Unit::TestCase
         Tempfile.create do |tempfile|
           content = "file contents"
           tempfile.write(content)
-          upload = { 'original_name' => 'foo.jpg', 'content_type' => 'application/jpg', 'filepath' => tempfile.tap(&:rewind).path }
+          upload = {
+            'original_name' => 'foo.jpg',
+            'content_type' => 'application/jpg',
+            'filepath' => tempfile.tap(&:rewind).path
+          }
           @attachment.assign(upload)
           assert_equal "foo.png", @attachment.path
           assert_equal content, @attachment.queued_for_write[:original].tap(&:rewind).read

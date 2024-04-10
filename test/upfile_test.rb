@@ -28,11 +28,10 @@ class UpfileTest < Test::Unit::TestCase
       '_.html' => 'text/html',
       '__.htm' => 'text/html',
 
-
       "_.txt" => "text/plain",
       "_.liquid" => "text/x-liquid",
       '_.svg' => 'image/svg+xml',
-      '_.xls' => 'application/vnd.ms-excel',
+      '_.xls' => 'application/vnd.ms-excel'
     }.each_pair do |example, result|
       should "return #{result} for #{example}" do
         assert_equal result, Paperclip::Upfile.content_type_from_ext(example)

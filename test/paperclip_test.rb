@@ -110,7 +110,7 @@ class PaperclipTest < Test::Unit::TestCase
 
     context "a validation with an if guard clause" do
       setup do
-        Dummy.send(:validates_attachment_presence, :avatar, :if => lambda{|i| i.foo })
+        Dummy.send(:validates_attachment_presence, :avatar, if: ->(i) { i.foo })
         @dummy = Dummy.new
       end
 
@@ -129,7 +129,7 @@ class PaperclipTest < Test::Unit::TestCase
 
     context "a validation with an unless guard clause" do
       setup do
-        Dummy.send(:validates_attachment_presence, :avatar, :unless => lambda{|i| i.foo })
+        Dummy.send(:validates_attachment_presence, :avatar, unless: ->(i) { i.foo })
         @dummy = Dummy.new
       end
 

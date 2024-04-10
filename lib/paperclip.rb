@@ -344,6 +344,6 @@ end
 
 # Set it all up.
 if Object.const_defined?("ActiveRecord")
-  ActiveRecord::Base.include(Paperclip)
+  ActiveSupport.on_load(:active_record) { include Paperclip }
   File.include(Paperclip::Upfile)
 end
