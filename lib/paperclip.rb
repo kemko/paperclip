@@ -344,6 +344,6 @@ end
 
 # Set it all up.
 if Object.const_defined?("ActiveRecord")
-  ActiveRecord::Base.send(:include, Paperclip)
-  File.send(:include, Paperclip::Upfile)
+  ActiveRecord::Base.include(Paperclip)
+  File.include(Paperclip::Upfile)
 end

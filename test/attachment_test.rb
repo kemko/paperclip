@@ -1,6 +1,6 @@
 require 'test_helper'
 
-class Dummy
+class Dummy # rubocop:disable Lint/EmptyClass
   # This is a dummy class
 end
 

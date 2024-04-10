@@ -1,7 +1,7 @@
 require 'test_helper'
 
 class PluralCacheTest < Test::Unit::TestCase
-  class BigBox; end
+  class BigBox; end # rubocop:disable Lint/EmptyClass
 
   should 'cache pluralizations' do
     cache = Paperclip::Interpolations::PluralCache.new

@@ -16,7 +16,7 @@ class PaperclipTest < Test::Unit::TestCase
       should "execute the right command" do
         Paperclip.expects(:path_for_command).with("convert").returns("/usr/bin/convert")
         Paperclip.expects(:bit_bucket).returns("/dev/null")
-        Paperclip.expects(:"`").with("timeout 30 /usr/bin/convert #{@file_path} #{@file_path2} 2>/dev/null")
+        Paperclip.expects(:`).with("timeout 30 /usr/bin/convert #{@file_path} #{@file_path2} 2>/dev/null")
         Paperclip.run("convert", "#{@file_path} #{@file_path2}")
       end
     end
@@ -33,7 +33,7 @@ class PaperclipTest < Test::Unit::TestCase
     should "execute the right command" do
       Paperclip.expects(:path_for_command).with("convert").returns("convert")
       Paperclip.expects(:bit_bucket).returns("/dev/null")
-      Paperclip.expects(:"`").with("timeout 30 convert #{@file_path} #{@file_path2} 2>/dev/null")
+      Paperclip.expects(:`).with("timeout 30 convert #{@file_path} #{@file_path2} 2>/dev/null")
       Paperclip.run("convert", "#{@file_path} #{@file_path2}")
     end
 
@@ -41,7 +41,7 @@ class PaperclipTest < Test::Unit::TestCase
       Paperclip.options[:log_command] = true
       Paperclip.expects(:bit_bucket).returns("/dev/null")
       Paperclip.expects(:log).with("convert #{@file_path} #{@file_path2} 2>/dev/null")
-      Paperclip.expects(:"`").with("timeout 30 convert #{@file_path} #{@file_path2} 2>/dev/null")
+      Paperclip.expects(:`).with("timeout 30 convert #{@file_path} #{@file_path2} 2>/dev/null")
       Paperclip.run("convert", "#{@file_path} #{@file_path2}")
     end
   end
@@ -110,7 +110,7 @@ class PaperclipTest < Test::Unit::TestCase
 
     context "a validation with an if guard clause" do
       setup do
-        Dummy.send(:"validates_attachment_presence", :avatar, :if => lambda{|i| i.foo })
+        Dummy.send(:validates_attachment_presence, :avatar, :if => lambda{|i| i.foo })
         @dummy = Dummy.new
       end
 
@@ -129,7 +129,7 @@ class PaperclipTest < Test::Unit::TestCase
 
     context "a validation with an unless guard clause" do
       setup do
-        Dummy.send(:"validates_attachment_presence", :avatar, :unless => lambda{|i| i.foo })
+        Dummy.send(:validates_attachment_presence, :avatar, :unless => lambda{|i| i.foo })
         @dummy = Dummy.new
       end
 
