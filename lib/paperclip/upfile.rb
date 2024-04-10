@@ -39,11 +39,6 @@ module Paperclip
     def original_filename
       @original_filename ||= File.basename(path)
     end
-
-    # Returns the size of the file.
-    def size
-      File.size(self)
-    end
   end
 end
 

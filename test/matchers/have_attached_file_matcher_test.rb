@@ -19,5 +19,11 @@ class HaveAttachedFileMatcherTest < Test::Unit::TestCase
       @dummy_class.has_attached_file :avatar
       assert_accepts @matcher, @dummy_class
     end
+
+    should "have messages" do
+      assert_equal "have an attachment named avatar", @matcher.description
+      assert_equal "Should have an attachment named avatar", @matcher.failure_message
+      assert_equal "Should not have an attachment named avatar", @matcher.negative_failure_message
+    end
   end
 end

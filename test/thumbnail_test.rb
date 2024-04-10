@@ -65,7 +65,7 @@ class ThumbnailTest < Test::Unit::TestCase
 
       should "send the right command to convert when sent #make" do
         Paperclip::Thumbnail.any_instance.stubs(:gamma_correction_if_needed).returns("PNG\nPaletteAlpha")
-        Paperclip.expects(:"`").with do |arg|
+        Paperclip.expects(:`).with do |arg|
           arg.match? %r{convert\s+"#{File.expand_path(@thumb.file.path)}\[0\]"\s+-auto-orient\s+-resize\s+\"x50\"\s+-crop\s+\"100x50\+114\+0\"\s+\+repage\s+}
         end
         @thumb.make
@@ -90,7 +90,7 @@ class ThumbnailTest < Test::Unit::TestCase
 
       should "send the right command to convert when sent #make" do
         Paperclip::Thumbnail.any_instance.stubs(:gamma_correction_if_needed).returns("PNG\nPaletteAlpha")
-        Paperclip.expects(:"`").with do |arg|
+        Paperclip.expects(:`).with do |arg|
           arg.match? %r{convert\s+"#{File.expand_path(@thumb.file.path)}\[0\]"\s+-auto-orient\s+-resize\s+"x50"\s+-crop\s+"100x50\+114\+0"\s+\+repage\s+-strip\s+-depth\s+8\s+}
         end
         @thumb.make

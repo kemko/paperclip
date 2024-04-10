@@ -32,7 +32,6 @@ require 'paperclip/upfile'
 require 'paperclip/iostream'
 require 'paperclip/geometry'
 require 'paperclip/processor'
-require 'paperclip/tempfile'
 require 'paperclip/thumbnail'
 require 'paperclip/recursive_thumbnail'
 require 'paperclip/storage'
@@ -345,6 +344,6 @@ end
 
 # Set it all up.
 if Object.const_defined?("ActiveRecord")
-  ActiveRecord::Base.send(:include, Paperclip)
-  File.send(:include, Paperclip::Upfile)
+  ActiveSupport.on_load(:active_record) { include Paperclip }
+  File.include(Paperclip::Upfile)
 end

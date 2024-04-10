@@ -30,6 +30,7 @@ if ENV['COVERAGE']
     add_group "Libraries", "lib/"
 
     track_files "{lib}/**/*.rb"
+    add_filter "lib/tasks/paperclip_tasks.rake" # TODO: вообще по-хорошема надо и его покрыть
   end
 end
 
@@ -99,6 +100,8 @@ def rebuild_class(options = {})
 end
 
 class FakeModel
+  def self.set_callback(...); end
+
   include Paperclip
 
   attr_accessor :avatar_file_name,

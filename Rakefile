@@ -47,24 +47,26 @@ task :clean do
   Dir.glob("paperclip-*.gem").each{|f| FileUtils.rm f }
 end
 
-include_file_globs = ["README*",
-                      "LICENSE",
-                      "Rakefile",
-                      "init.rb",
-                      "{generators,lib,tasks,test,shoulda_macros}/**/*"]
-exclude_file_globs = ["test/s3.yml",
-                      "test/debug.log",
-                      "test/paperclip.db",
-                      "test/doc",
-                      "test/doc/*",
-                      "test/pkg",
-                      "test/pkg/*",
-                      "test/tmp",
-                      "test/tmp/*"]
 
 def spec
   # TODO: require 'paperclip/version'
   require 'paperclip'
+
+  include_file_globs = ["README*",
+                        "LICENSE",
+                        "Rakefile",
+                        "init.rb",
+                        "{generators,lib,tasks,test,shoulda_macros}/**/*"]
+  exclude_file_globs = ["test/s3.yml",
+                        "test/debug.log",
+                        "test/paperclip.db",
+                        "test/doc",
+                        "test/doc/*",
+                        "test/pkg",
+                        "test/pkg/*",
+                        "test/tmp",
+                        "test/tmp/*"]
+
   Gem::Specification.new do |s|
     s.name              = "paperclip"
     s.version           = Paperclip::VERSION

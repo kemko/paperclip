@@ -1,6 +1,6 @@
 require 'test_helper'
 
-class Dummy
+class Dummy # rubocop:disable Lint/EmptyClass
   # This is a dummy class
 end
 
@@ -133,6 +133,23 @@ class AttachmentTest < Test::Unit::TestCase
     should "return the right extension for the path" do
       @attachment.assign(@file)
       assert_equal "file.png", @attachment.path
+    end
+
+    context "fast upload via nginx" do
+      should "return the right extension for the path" do
+        Tempfile.create do |tempfile|
+          content = "file contents"
+          tempfile.write(content)
+          upload = {
+            'original_name' => 'foo.jpg',
+            'content_type' => 'application/jpg',
+            'filepath' => tempfile.tap(&:rewind).path
+          }
+          @attachment.assign(upload)
+          assert_equal "foo.png", @attachment.path
+          assert_equal content, @attachment.queued_for_write[:original].tap(&:rewind).read
+        end
+      end
     end
   end
 
