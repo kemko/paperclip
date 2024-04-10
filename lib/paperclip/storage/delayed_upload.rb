@@ -34,7 +34,7 @@ module Paperclip
         raise if model.exists?(id)
       rescue Errno::ENOENT => e
         raise if model.exists?(id)
-        Rollbar.warn(e, file_name: e.message.split(' - ')[-1])
+        Rollbar.warn(e, file_name: e.message.split(' - ')[-1]) if defined?(Rollbar)
       end
     end
   end
