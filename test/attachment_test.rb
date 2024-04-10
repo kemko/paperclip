@@ -134,6 +134,19 @@ class AttachmentTest < Test::Unit::TestCase
       @attachment.assign(@file)
       assert_equal "file.png", @attachment.path
     end
+
+    context "fast upload via nginx" do
+      should "return the right extension for the path" do
+        Tempfile.create do |tempfile|
+          content = "file contents"
+          tempfile.write(content)
+          upload = { 'original_name' => 'foo.jpg', 'content_type' => 'application/jpg', 'filepath' => tempfile.tap(&:rewind).path }
+          @attachment.assign(upload)
+          assert_equal "foo.png", @attachment.path
+          assert_equal content, @attachment.queued_for_write[:original].tap(&:rewind).read
+        end
+      end
+    end
   end
 
   context "An attachment with both 'normal' and hash-style styles" do

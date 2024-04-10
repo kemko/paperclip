@@ -31,6 +31,12 @@ class ValidateAttachmentSizeMatcherTest < Test::Unit::TestCase
         @dummy_class.validates_attachment_size :avatar, :in => 256..1024
         assert_accepts @matcher, @dummy_class
       end
+
+      should "have messages" do
+        assert_equal "validate the size of attachment avatar", @matcher.description      
+        assert_equal "Attachment avatar must be between 256 and 1024 bytes", @matcher.failure_message
+        assert_equal "Attachment avatar cannot be between 256 and 1024 bytes", @matcher.negative_failure_message
+      end
     end
 
     context "validates_attachment_size with infinite range" do

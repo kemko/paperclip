@@ -17,5 +17,11 @@ class ValidateAttachmentPresenceMatcherTest < Test::Unit::TestCase
       @dummy_class.validates_attachment_presence :avatar
       assert_accepts @matcher, @dummy_class
     end
+
+    should "have messages" do
+      assert_equal "require presence of attachment avatar", @matcher.description      
+      assert_equal "Attachment avatar should be required", @matcher.failure_message
+      assert_equal "Attachment avatar should not be required", @matcher.negative_failure_message
+    end
   end
 end

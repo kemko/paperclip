@@ -26,5 +26,11 @@ class ValidateAttachmentContentTypeMatcherTest < Test::Unit::TestCase
       @dummy_class.validates_attachment_content_type :avatar, :content_type => %r{image/.*}
       assert_accepts @matcher, @dummy_class
     end
+
+    should "have messages" do
+      assert_equal "validate the content types allowed on attachment avatar", @matcher.description      
+      assert_equal "Content types image/png, image/jpeg should be accepted and audio/mp3, application/octet-stream rejected by avatar", @matcher.failure_message
+      assert_equal "Content types image/png, image/jpeg should be rejected and audio/mp3, application/octet-stream accepted by avatar", @matcher.negative_failure_message
+    end
   end
 end
