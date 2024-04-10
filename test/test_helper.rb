@@ -99,6 +99,9 @@ def rebuild_class(options = {})
 end
 
 class FakeModel
+  def self.set_callback(...)
+  end
+
   include Paperclip
 
   attr_accessor :avatar_file_name,

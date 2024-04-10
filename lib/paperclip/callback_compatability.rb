@@ -5,63 +5,31 @@ module Paperclip
     module_function
 
     def install_to(base)
-      mod = base.respond_to?(:set_callback) ? Rails3 : Rails21
-      base.extend(mod::Defining)
-      base.send(:include, mod::Running)
+      raise "#{base} does not respond to set_callback" unless base.respond_to?(:set_callback)
+
+      base.extend(Defining)
+      base.send(:include, Running)
     end
 
-    module Rails21
-      module Defining
-        def define_paperclip_callbacks(*args)
-          args.each do |callback|
-            define_callbacks("before_#{callback}")
-            define_callbacks("after_#{callback}")
+    module Defining
+      def define_paperclip_callbacks(*callbacks)
+        define_callbacks(*callbacks.flatten, {})
+        callbacks.map(&:to_sym).each do |callback|
+          define_singleton_method "before_#{callback}" do |*args, &blk|
+            set_callback(callback, :before, *args, &blk)
           end
-        end
-      end
 
-      module Running
-        def run_paperclip_callbacks(callback, _opts = nil)
-          # The overall structure of this isn't ideal since after callbacks run even if
-          # befores return false. But this is how rails 3's callbacks work, unfortunately.
-          yield if run_callbacks(:"before_#{callback}") { |result, _object| result == false } != false
-          run_callbacks(:"after_#{callback}") { |result, _object| result == false }
+          define_singleton_method "after_#{callback}" do |*args, &blk|
+            set_callback(callback, :after, *args, &blk)
+          end
         end
       end
     end
 
-    module Rails3
-      module Defining
-        rails_version = Gem::Version.new(ActiveSupport::VERSION::STRING)
-        CALLBACK_OPTIONS =
-          if rails_version >= Gem::Version.new('5.0')
-            {}
-          elsif rails_version >= Gem::Version.new('4.1')
-            { terminator: ->(_target, result) { result == false } }
-          else
-            { terminator: 'result == false' }
-          end
-
-        def define_paperclip_callbacks(*callbacks)
-          define_callbacks(*callbacks.flatten, CALLBACK_OPTIONS)
-          callbacks.map(&:to_sym).each do |callback|
-            define_singleton_method "before_#{callback}" do |*args, &blk|
-              set_callback(callback, :before, *args, &blk)
-            end
-
-            define_singleton_method "after_#{callback}" do |*args, &blk|
-              set_callback(callback, :after, *args, &blk)
-            end
-          end
-        end
-      end
-
-      module Running
-        def run_paperclip_callbacks(callback, &block)
-          run_callbacks(callback, &block)
-        end
+    module Running
+      def run_paperclip_callbacks(callback, &block)
+        run_callbacks(callback, &block)
       end
     end
   end
 end
-
