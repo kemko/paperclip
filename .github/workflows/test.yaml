@@ -13,10 +13,12 @@ jobs:
         include:
           - ruby-version: 3.2.3
             rails-version: 70
-          - ruby-version: 3.3.1
-            rails-version: 70
-          - ruby-version: 3.3.1
+          # - ruby-version: 3.3.5
+            # rails-version: 70
+          - ruby-version: 3.3.5
             rails-version: 71
+          - ruby-version: 3.3.5
+            rails-version: 72
 
     env:
       BUNDLE_GEMFILE: ${{ github.workspace }}/gemfiles/rails_${{ matrix.rails-version }}.gemfile
