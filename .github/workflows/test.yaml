@@ -26,7 +26,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:12-alpine
+        image: postgres:16-alpine
         env:
           POSTGRES_DB: paperclip_test
           POSTGRES_USER: postgres
