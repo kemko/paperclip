@@ -6,7 +6,7 @@ gem "pg"
 gem "aws-sdk-s3", "=1.143.0"
 gem "fog-local"
 gem "delayed_paperclip", git: "https://github.com/insales/delayed_paperclip.git"
-gem "rails", "~>7.0.8"
+gem "rails", "~>7.2.1"
 gem "sidekiq", "~>6.5"
 gem "test-unit"
 gem "simplecov", require: false
