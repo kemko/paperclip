@@ -155,12 +155,22 @@ module Paperclip
 
       @dirty = true
 
-      post_process if post_processing && valid?
+      if post_processing && valid?
+        post_process
+
+        # Reset the file size and image sizes if the original file was reprocessed.
+        if queued_for_write.dig(:original) && instance_read(:file_size) != queued_for_write[:original].size.to_i
+          instance_write(:file_size, queued_for_write[:original].size.to_i)
+          sizes = FastImage.size(queued_for_write[:original])
+          if sizes && sizes[0] && sizes[1]
+            instance_write(:width, sizes[0])
+            instance_write(:height, sizes[1])
+          end
+        end
+      end
 
       updater = :"#{name}_file_name_will_change!"
       instance.send updater if instance.respond_to? updater
-      # Reset the file size if the original file was reprocessed.
-      instance_write(:file_size, queued_for_write[:original].size.to_i)
     ensure
       uploaded_file.close if close_uploaded_file
       validate
