@@ -25,7 +25,7 @@ module Paperclip
             when 'image/png', 'image/x-png'
               "pngcrush -rem alla -q #{src_shell} #{dst_shell}"
             when 'image/gif'
-              "gifsicle -o #{dst_shell} --no-comments --no-names --same-delay --same-loopcount --no-warnings -- #{src_shell}"
+              "gifsicle -o #{dst_shell} --no-warnings -- #{src_shell}"
             else
               return
             end
